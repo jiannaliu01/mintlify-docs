@@ -34,7 +34,7 @@
           {
             "group": "Endpoint examples",
             "pages": [
-              "api-reference/endpoint/create"
+              "api-reference/endpoint/process"
             ]
           }
         ]
