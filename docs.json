@@ -4,8 +4,8 @@
   "name": "Cardinal",
   "colors": {
     "primary": "#e7000b",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "light": "#ff5c66",
+    "dark": "#990008"
   },
   "favicon": "/dark.ico",
   "navigation": {
