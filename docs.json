@@ -1,6 +1,6 @@
 {
   "$schema": "https://trycardinal.ai/docs.json",
-  "theme": "mint",
+  "theme": "aspen",
   "name": "Cardinal",
   "colors": {
     "primary": "#e7000b",
