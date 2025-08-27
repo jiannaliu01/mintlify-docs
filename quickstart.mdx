@@ -22,7 +22,7 @@ Process a document:
 ```
 import requests
 
-url = "https://async-cardinal-api-382401401043.us-central1.run.app/process"
+url = "https://api.trycardinal.ai/process"
 
 headers = {
     "x-api-key": "YOUR_API_KEY_HERE"
@@ -50,7 +50,7 @@ The Markdown text will be available in the `"pages" → "content"` fields of the
 If you prefer the command line:
 
 ```
-curl --location 'https://async-cardinal-api-382401401043.us-central1.run.app/process' \
+curl --location 'https://api.trycardinal.ai/process' \
 --header 'x-api-key: YOUR_API_KEY_HERE' \
 --form 'file=@"/path/to/your/document.pdf"' \
 --form 'post_processing_on=false' \
