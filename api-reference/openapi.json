@@ -224,9 +224,9 @@
                         }
                       }
                     },
-                    "json": {
+                    "schema_result": {
                       "type": "object",
-                      "description": "Optional structured JSON extracted when schema and schema_format are provided"
+                      "description": "Optional structured schema extracted when schema and schema_format are provided"
                     }
                   }
                 },
