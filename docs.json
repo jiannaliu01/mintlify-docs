@@ -48,7 +48,8 @@
           {
             "group": "Endpoint examples",
             "pages": [
-              "api-reference/endpoint/process"
+              "api-reference/endpoint/process",
+              "api-reference/endpoint/extract"
             ]
           }
         ]
