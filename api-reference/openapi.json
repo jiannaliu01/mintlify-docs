@@ -14,7 +14,7 @@
     "/process": {
       "post": {
         "summary": "Process File",
-        "description": "Convert PDF or image pages into clean, structured Markdown.",
+        "description": "Convert PDF or image pages into clean, structured Markdown, and optionally extract structured JSON using a schema.",
         "operationId": "processFile",
         "security": [
           {
@@ -52,6 +52,18 @@
                     "type": "boolean",
                     "default": false,
                     "description": "If true, results are not stored"
+                  },
+                  "schema": {
+                    "type": "string",
+                    "description": "Schema definition to guide extraction (JSON Schema or Zod string)"
+                  },
+                  "schema_format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "zod"
+                    ],
+                    "description": "Format of the schema provided."
                   }
                 },
                 "oneOf": [
@@ -211,6 +223,10 @@
                           }
                         }
                       }
+                    },
+                    "json": {
+                      "type": "object",
+                      "description": "Optional structured JSON extracted when schema and schema_format are provided"
                     }
                   }
                 },
@@ -225,7 +241,11 @@
                       "height": 792.0,
                       "width": 612.0
                     }
-                  ]
+                  ],
+                  "json": {
+                    "invoiceNumber": "250339",
+                    "dueDate": "2025-04-18"
+                  }
                 }
               }
             }
