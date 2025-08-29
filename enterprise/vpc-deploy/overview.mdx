@@ -1,0 +1,48 @@
+---
+title: "Overview"
+description: "VPC Deploy options for Cardinal Enterprise customers."
+---
+
+Cardinal Enterprise gives you two ways to run in your own cloud environment:
+
+- **Cardinal Dedicated** – fully managed, single-tenant deployment in a VPC we host for you.  
+- **Private Cloud Deployment** – self-managed deployment in your own cloud account or data center.
+
+---
+
+## Cardinal Dedicated
+
+Cardinal Dedicated is a **single-tenant, fully managed** deployment:
+
+- Hosted and operated by Cardinal  
+- Isolated in a separate AWS/Azure account + VPC  
+- Meets enterprise-grade compliance and audit standards  
+- Continuous rolling upgrades (one version behind latest Cardinal)  
+- IAM roles for your admins; Cardinal manages underlying infra  
+
+---
+
+## Private Cloud Deployment
+
+Private Cloud lets you **self-host Cardinal** within your infrastructure:
+
+- Run Cardinal packages (Server, App, Postgres) inside your own cluster or VMs  
+- Bring your own cloud provider, region, or on-prem environment  
+- You manage upgrades, scaling, and monitoring  
+- Cardinal provides container images and setup docs  
+
+### Prerequisites
+- Docker & Docker Compose (or Kubernetes)  
+- Private container registry (ECR/ACR/GCR or equivalent)  
+- Credentials for registry access  
+- Database user with permissions  
+
+<CardGroup cols={2}>
+  <Card title="Deployment Guide" icon="book" href="/enterprise/vpc-deploy/get-started">
+    Step-by-step instructions for Docker/K8s.
+  </Card>
+</CardGroup>
+
+---
+
+If you need any help, please reach out to **team@trycardinal.ai**.

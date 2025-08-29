@@ -1,0 +1,36 @@
+---
+title: "Logging"
+description: "Streaming and exporting logs from the Cardinal Docker image."
+---
+
+By default, Cardinal collects anonymized logs for product improvement.  
+If you need to **disable** collection for your deployment, contact **team@trycardinal.ai**.
+
+---
+
+## Using the Loki protocol to forward logs to your own aggregation
+
+The `cardinal` container supports forwarding logs via the **Loki** protocol.  
+To enable this, contact support so we can toggle the feature for your instance, and provide the `LOKI_URL` environment variable in your runtime.
+
+> `LOKI_URL` should point to a Loki-compatible push endpoint, e.g. `https://my-internal-loki-service/loki/api/v1/push`.
+
+### Example (Docker Compose)
+
+```yaml
+services:
+  app:
+    image: cardinal:latest
+    container_name: cardinal
+    ports:
+      - "3000:3000"   # Web UI
+      - "4000:4000"   # API
+    volumes:
+      - pgdata:/var/lib/postgresql/16/main
+    environment:
+      - CARDINAL_PRODUCT_KEY="12345"
+      - LOKI_URL=https://my-internal-loki-service/loki/api/v1/push
+
+volumes:
+  pgdata:
+    name: cardinal_pg_data

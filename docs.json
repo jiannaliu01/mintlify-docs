@@ -19,6 +19,20 @@
               "index",
               "quickstart"
             ]
+          },
+          {
+            "group": "Enterprise",
+            "pages": [
+              {
+                "group": "VPC Deploy",
+                "pages": [
+                  "enterprise/vpc-deploy/overview",
+                  "enterprise/vpc-deploy/get-started",
+                  "enterprise/vpc-deploy/logging",
+                  "enterprise/vpc-deploy/licensing"
+                ]
+              }
+            ]
           }
         ]
       },
