@@ -31,6 +31,18 @@
                   "enterprise/vpc-deploy/logging",
                   "enterprise/vpc-deploy/licensing"
                 ]
+              },
+              {
+                "group": "Security",
+                "pages": [
+                  "enterprise/security/compliance"
+                ]
+              },
+              {
+                "group": "Benchmark",
+                "pages": [
+                  "enterprise/security/benchmark"
+                ]
               }
             ]
           }
