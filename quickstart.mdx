@@ -43,7 +43,33 @@ print(response.json())
 ✅ You’ve just processed your first document\!\
 The Markdown text will be available in the `"pages" → "content"` fields of the response.
 
-## Method 2: cURL
+### Method 2: Pre-signed File URL
+
+Instead of uploading a file directly, you can pass a publicly accessible or pre-signed file URL:
+
+```
+import requests
+
+url = "https://api.trycardinal.ai/process"
+
+headers = {
+    "x-api-key": "YOUR_API_KEY_HERE"
+}
+
+data = {
+    "fileUrl": "https://your-bucket.s3.amazonaws.com/sample.pdf?X-Amz-Signature=...",
+    "post_processing_on": "false",
+    "start_page": "1"
+}
+
+response = requests.post(url, headers=headers, data=data)
+
+print(response.json())
+```
+
+This avoids sending the file bytes directly and is ideal for large files or when working with cloud storage.
+
+### Method 3: cURL
 
 If you prefer the command line:
 
