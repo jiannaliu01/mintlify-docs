@@ -5,11 +5,13 @@ description: "Run Cardinal in your own infrastructure."
 
 ## Prerequisites
 - [Install Docker](https://docs.docker.com/get-docker/)  
-- [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) with access to AWS ECR  
+- Either:
+  - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) with access to AWS ECR  
+  - [Install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) with access to Azure ACR  
 
 ---
 
-## Authenticate to ECR
+### AWS ECR
 Cardinal images are hosted in a private ECR. Contact **team@trycardinal.ai** for access.  
 
 ```bash
@@ -21,9 +23,21 @@ aws ecr get-login-password --region us-east-2 \
   --password-stdin <your-cardinal-ecr-repo>.dkr.ecr.us-east-2.amazonaws.com
 ```
 
+### Azure ACR 
+If your deployment uses Azure Container Registry (ACR):
+```bash
+az login
+az acr login --name <your-acr-name>
+```
+
 ## Pull the Docker image
+### From AWS ECR
 ```bash
 docker pull <your-cardinal-ecr-repo>.dkr.ecr.us-east-2.amazonaws.com/cardinal:latest
+```
+### From Azure ACR
+```bash 
+docker pull <your-acr-name>.azurecr.io/cardinal:latest
 ```
 
 ## Network Requirements
@@ -34,3 +48,4 @@ https://api.trycardinal.ai.
 AWS Bedrock integration → inference stays inside your AWS account,
 no Cardinal API whitelisting required.
 
+Azure OpenAI integration → inference stays inside your Azure subscription, no Cardinal API whitelisting required.
