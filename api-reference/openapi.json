@@ -64,6 +64,16 @@
                       "zod"
                     ],
                     "description": "Format of the schema provided."
+                  },
+                  "boundingBoxesForParagraphs": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Controls granularity of returned text bounding boxes. If true (default), bounding boxes are grouped per paragraph. If false, bounding boxes are grouped per word."
+                  },
+                  "markdown": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls table handling in output. By default, all content is returned as Markdown, except tables which remain in HTML to preserve structure. If true, tables are also converted to Markdown using the markdownify library (may cause formatting issues)."
                   }
                 },
                 "oneOf": [
