@@ -65,7 +65,7 @@
                     ],
                     "description": "Format of the schema provided."
                   },
-                  "boundingBoxesForParagraphs": {
+                  "boundingBoxesParagraphs": {
                     "type": "boolean",
                     "default": true,
                     "description": "Controls granularity of returned text bounding boxes. If true (default), bounding boxes are grouped per paragraph. If false, bounding boxes are grouped per word."
