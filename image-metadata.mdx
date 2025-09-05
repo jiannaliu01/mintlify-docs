@@ -5,59 +5,74 @@ description: "Extract image references and metadata alongside Markdown output."
 
 ## Overview
 
-When Cardinal extracts figures and images, the Markdown output contains **lightweight placeholders** like:
+When Cardinal extracts figures and images, the Markdown output now contains **numbered placeholders** like:
 
 ```markdown
-Here is a chart of quarterly revenue: <figure1>
+Here is a chart of quarterly revenue: [Figure 1]
 ```
 
 These placeholders are not expanded in the Markdown itself.
 
-Instead, the corresponding metadata is provided separately in the image_metadata field of the API response.
-
----
+Instead, the corresponding metadata is provided separately in the `image_metadata` field of the API response.
 
 ## How It Works
 
-- **Markdown output**: contains `<figureN>` tags (e.g., `<figure1>`, `<figure2>`)
-- **API response**: contains an image_metadata array with entries that match those placeholders by name
+- **Markdown output**: contains `[Figure N]` placeholders (e.g., `[Figure 1]`, `[Figure 2]`)
+- **API response**: contains an `image_metadata` array with entries that match those placeholders by ID
 
-Each image_metadata entry includes:
-- `name` - matches the placeholder in Markdown (figure1, figure2, etc.)
-- `image_url` - direct link to the cropped figure image
-- `bounding_box` - coordinates of the figure in the page
-- `metadata` - additional properties (format, size, caption, etc.)
+Each `image_metadata` entry includes:
 
----
+- `figure_id` — numeric ID that matches the Markdown placeholder
+- `caption` — short description or label for the figure
+- `cropped_image_url` — direct link to the cropped figure image
+- `metadata` — additional context (format, description, brand info, etc.)
+- `bounding_box` — both original and pixel coordinates of the figure
+- `subfigure_count` — number of subfigures (if any)
+- `processing_times` — timing breakdown of how long each step took
 
+> **Note**: By default, `cropped_image_url` contains temporary URLs to the extracted images. To prevent URL generation and keep images ephemeral, set the `ephemeral: true` flag in your API request.
 
 ## Example
 
 ### Markdown Output
+
 ```markdown
-Revenue grew steadily across the quarter: <figure1>
+Revenue grew steadily across the quarter: [figure 1]
 ```
 
 ### API Response
+
 ```json
 {
   "pages": [
     {
-      "content": "Revenue grew steadily across the quarter: <figure1>",
+      "content": "Revenue grew steadily across the quarter: [figure 1]",
       "image_metadata": [
         {
-          "name": "figure1",
-          "image_url": "https://cdn.trycardinal.ai/tmp/fig-1.png",
+          "figure_id": 1,
+          "caption": "Nordnet",
+          "cropped_image_url": "https://cardinal-ai-bucket.s3.amazonaws.com/.../4413b49a_cropped.png?...",
+          "metadata": "(1) The Nordnet logo.\n\n(2) It is there to identify the company that the presentation is about. The logo is associated with the brand \"Nordnet\".",
           "bounding_box": {
-            "x": 100,
-            "y": 200,
-            "width": 400,
-            "height": 300
+            "original_coordinates": {
+              "min_x": 9.8557,
+              "min_y": 1.2587,
+              "max_x": 10.8182,
+              "max_y": 1.4565
+            },
+            "pixel_coordinates": {
+              "left": 2937,
+              "top": 357,
+              "right": 3266,
+              "bottom": 457
+            }
           },
-          "metadata": {
-            "format": "png",
-            "size": { "width": 800, "height": 600 },
-            "caption": "Quarterly revenue trend"
+          "subfigure_count": 1,
+          "processing_times": {
+            "uploads": 0.5005,
+            "metadata": 2.6845,
+            "caption": 2.5158,
+            "total": 2.6851
           }
         }
       ]
@@ -65,4 +80,3 @@ Revenue grew steadily across the quarter: <figure1>
   ]
 }
 ```
-
