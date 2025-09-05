@@ -6,6 +6,7 @@ description: "Visualize extracted content with bounding boxes from Cardinal."
 ## Overview
 
 Cardinal can return **bounding boxes** for text, citations, and other extracted elements.  
+
 These appear as `bounding_boxes` objects inside each page entry of the `pages` array in the response.
 
 ---
@@ -17,6 +18,47 @@ These appear as `bounding_boxes` objects inside each page entry of the `pages` a
 - Default grouping is **by paragraph**.  
 - To switch to **word-level boxes**, set **`boundingBoxesParagraphs: false`**.
 - ⚠️ Enabling bounding box will **add latency** to your requests.  
+
+---
+
+## Example Response 
+
+```json 
+{
+  "pages": [
+    {
+      "page": 1,
+      "width": 612,
+      "height": 792,
+      "bounding_boxes": [
+        {
+          "bounding_box": {
+            "min_x": 1.2558,
+            "min_y": 0.9282,
+            "max_x": 2.4513,
+            "max_y": 1.1343
+          },
+          "content": "Test"
+        },
+        {
+          "bounding_box": {
+            "min_x": 2.6974,
+            "min_y": 1.2862,
+            "max_x": 4.9843,
+            "max_y": 1.4512
+          },
+          "content": "Text!"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Fields**
+- `width`, `height` — page size in points (1 inch = 72 points)
+- `bounding_boxes[].bounding_box` — box in inches (min_x, min_y, max_x, max_y)
+- `bounding_boxes[].content` — text captured for that region
 
 ---
 

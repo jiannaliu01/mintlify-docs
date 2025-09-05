@@ -28,7 +28,7 @@
             ]
           },
           {
-            "group": "Main Capabilities",
+            "group": "Output Formats",
             "pages": [
               "markdown",
               "json",
@@ -36,7 +36,7 @@
             ]
           },
           {
-            "group": "Additional Capabilities",
+            "group": "Key Features",
             "pages": [
               "bounding-boxes",
               "image-metadata",
@@ -58,9 +58,9 @@
             ]
           },
           {
-            "group": "Stability",
+            "group": "Uptime",
             "pages": [
-              "stability"
+              "uptime"
             ]
           },
           {
