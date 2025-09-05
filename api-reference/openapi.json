@@ -452,6 +452,132 @@
           }
         }
       }
+    },
+    "/extract": {
+      "post": {
+        "summary": "Extract Structured Data by Schema",
+        "description": "Extracts structured JSON from a PDF using a required schema. Accepts a file upload **or** a `fileUrl`. PDF only.",
+        "operationId": "extractSchema",
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF file to upload (required if no fileUrl). Only .pdf allowed."
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Publicly accessible URL of the PDF to process (required if no file). Only .pdf allowed."
+                  },
+                  "schema": {
+                    "type": "string",
+                    "description": "Required schema definition (JSON Schema or Zod string) describing the fields to extract."
+                  }
+                },
+                "required": [
+                  "schema"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "fileUrl"
+                    ]
+                  }
+                ]
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "application/pdf"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful schema extraction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "JSON schema extracted successfully"
+                    },
+                    "response": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "string",
+                          "description": "May be a JSON string depending on configuration."
+                        }
+                      ],
+                      "description": "Model's structured output matching the provided schema."
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "response"
+                  ]
+                },
+                "examples": {
+                  "jsonObject": {
+                    "summary": "Typical object response",
+                    "value": {
+                      "message": "JSON schema extracted successfully",
+                      "response": {
+                        "invoiceNumber": "250339",
+                        "invoiceDate": "2025-04-08",
+                        "dueDate": "2025-04-18",
+                        "totalDue": 1234.56
+                      }
+                    }
+                  },
+                  "jsonString": {
+                    "summary": "Stringified JSON response",
+                    "value": {
+                      "message": "JSON schema extracted successfully",
+                      "response": "{\"invoiceNumber\":\"250339\",\"invoiceDate\":\"2025-04-08\",\"dueDate\":\"2025-04-18\",\"totalDue\":1234.56}"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (missing file/fileUrl, missing schema, or unsupported file type)"
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing API key for non-demo requests)"
+          },
+          "415": {
+            "description": "Unsupported Media Type (only application/pdf accepted for /extract)"
+          },
+          "500": {
+            "description": "Internal Server Error (schema extraction failed)"
+          }
+        }
+      }
     }
   },
   "components": {
