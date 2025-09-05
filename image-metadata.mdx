@@ -19,16 +19,17 @@ Instead, the corresponding metadata is provided separately in the image_metadata
 
 ## How It Works
 
-- **Markdown output**: contains <figureN> tags (e.g., <figure1>, <figure2>)
+- **Markdown output**: contains `<figureN>` tags (e.g., `<figure1>`, `<figure2>`)
 - **API response**: contains an image_metadata array with entries that match those placeholders by name
 
 Each image_metadata entry includes:
-- name → matches the placeholder in Markdown (figure1, figure2, …)
-- image_url → direct link to the cropped figure image
-- bounding_box → coordinates of the figure in the page
-- metadata → additional properties (format, size, caption, etc.)
+- `name` - matches the placeholder in Markdown (figure1, figure2, etc.)
+- `image_url` - direct link to the cropped figure image
+- `bounding_box` - coordinates of the figure in the page
+- `metadata` - additional properties (format, size, caption, etc.)
 
 ---
+
 
 ## Example
 
@@ -36,9 +37,9 @@ Each image_metadata entry includes:
 ```markdown
 Revenue grew steadily across the quarter: <figure1>
 ```
- 
-### API Response 
-```json 
+
+### API Response
+```json
 {
   "pages": [
     {
@@ -64,9 +65,4 @@ Revenue grew steadily across the quarter: <figure1>
   ]
 }
 ```
---- 
-## Use Cases
 
-- Render figures inline by replacing <figureN> with the associated image_url
-- Preserve document flow while separating text and visuals cleanly
-- Enable interactive UIs (hover over <figure1> → show chart preview)
