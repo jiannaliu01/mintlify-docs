@@ -11,40 +11,76 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Introduction",
             "pages": [
               "index",
-              "quickstart",
-              "file-types"
+              "quickstart"
             ]
           },
           {
-            "group": "Enterprise",
+            "group": "The Basics",
+            "pages": [
+              "file-types",
+              "authentication/index"
+            ]
+          },
+          {
+            "group": "Main Capabilities",
+            "pages": [
+              "Markdown",
+              "JSON",
+              "output-response"
+            ]
+          },
+          {
+            "group": "Additional Capabilities",
+            "pages": [
+              "bounding-boxes",
+              "image-metadata",
+              "barcode",
+              "signature",
+              "dense-tables",
+              "redlines",
+              "classify-split",
+              "coming-soon"
+            ]
+          },
+          {
+            "group": "Common Questions",
+            "pages": [
+              "accuracy",
+              "cost",
+              "latency",
+              "faqs"
+            ]
+          },
+          {
+            "group": "Stability",
+            "pages": [
+              "stability"
+            ]
+          },
+          {
+            "group": "On-Premise",
             "pages": [
               {
-                "group": "VPC Deploy",
+                "group": "VPC Deployment",
                 "pages": [
                   "enterprise/vpc-deploy/overview",
                   "enterprise/vpc-deploy/get-started",
                   "enterprise/vpc-deploy/logging",
                   "enterprise/vpc-deploy/licensing"
                 ]
-              },
-              {
-                "group": "Security",
-                "pages": [
-                  "enterprise/security/compliance"
-                ]
-              },
-              {
-                "group": "Benchmark",
-                "pages": [
-                  "enterprise/security/benchmark"
-                ]
               }
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "enterprise/security/compliance"
             ]
           }
         ]

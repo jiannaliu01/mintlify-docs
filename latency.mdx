@@ -1,0 +1,39 @@
+---
+title: "Latency"
+description: "Understand Cardinal’s latency and performance characteristics."
+---
+
+### Latency Overview
+
+Cardinal is optimized for speed and scale, but actual latency depends on:  
+
+- **Page count** — more pages = more processing time.  
+- **Complexity** — dense tables, handwriting, and annotations take longer.  
+- **Features toggled** — enabling extra passes (e.g., handwriting, redlines, skew correction) increases latency.  
+- **System resources** — CPU throttling may occur on very large uploads.  
+
+---
+
+### Typical Latency
+
+| Document Size | Standard Docs | Dense Tables | Handwriting | Dense + Handwriting |
+|---------------|---------------|--------------|-------------|----------------------|
+| **1 page**    | 1–3 sec       | 2–4 sec      | 2–4 sec     | 3–5 sec              |
+| **10 pages**  | ~5–7 sec      | ~7–9 sec     | ~8–10 sec   | ~10–12 sec           |
+| **100 pages** | ~30 sec       | ~35 sec      | ~40 sec     | ~45 sec              |
+
+---
+
+### Notes
+
+- Latency scales **roughly linearly with page count**.  
+- Dense tables add ~10–20% overhead.  
+- Handwriting adds ~20–30% overhead.  
+- Enabling **all advanced passes** can increase latency by up to ~50%.  
+- **Skew correction** can be toggled off for speed, but sideways scans may not extract correctly.  
+
+---
+
+<Note>
+These are approximate numbers. For production workloads, we recommend running a few sample uploads to benchmark your own latency.
+</Note>

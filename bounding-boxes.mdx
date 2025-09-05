@@ -1,0 +1,99 @@
+---
+title: "Bounding Boxes"
+description: "Visualize extracted content with bounding boxes from Cardinal."
+---
+
+## Overview
+
+Cardinal can return **bounding boxes** for text, citations, and other extracted elements.  
+These appear as `bounding_boxes` objects inside each page entry of the `pages` array in the response.
+
+---
+
+## How to Enable
+
+- Set **`showBoundingBox: true`** in your request.  
+- Bounding boxes are returned in the response under `pages[n].bounding_boxes`.  
+- Default grouping is **by paragraph**.  
+- To switch to **word-level boxes**, set **`boundingBoxesParagraphs: false`**.
+- ⚠️ Enabling bounding box will **add latency** to your requests.  
+
+---
+
+## Use Cases
+
+Bounding boxes let you:
+
+- Highlight citations alongside extracted text  
+- Align extracted content to its original PDF location  
+- Build interactive viewers with selectable regions  
+
+---
+
+## Units
+
+Bounding boxes are returned in **inches**, relative to the original PDF coordinate system.
+
+- Origin: **top-left** of the page  
+- Format: `(min_x, min_y, max_x, max_y)` → inches  
+
+You’ll also see `width` and `height` (in points) for each page in the response.  
+
+> 💡 **Recommended workflow**:  
+> 1. Convert inches → points (multiply by 72).  
+> 2. Normalize by the PDF’s page size in points (`width` and `height` from the response).  
+> 3. Convert to percentages for rendering highlights.  
+
+This ensures bounding boxes scale correctly across different PDF sizes (e.g., 600–800 point wide pages).
+
+---
+
+## Conversion Example
+
+Here’s how you can implement the recommended workflow on the frontend:
+
+```ts
+const convertExtractedDataToHighlightAreas = (): HighlightArea[] => {
+  const boundingBoxData = Array.isArray(extractedData)
+    ? extractedData
+    : extractedData?.pages?.[currentPage - 1]?.bounding_boxes;
+
+  if (!boundingBoxData || boundingBoxData.length === 0) {
+    console.log('No bounding box data found');
+    return [];
+  }
+
+  const INCHES_TO_POINTS = 72;
+
+  return boundingBoxData.map((box: any, index: number) => {
+    // Convert from inches to points
+    const xInPoints = box.bounding_box.min_x * INCHES_TO_POINTS;
+    const yInPoints = box.bounding_box.min_y * INCHES_TO_POINTS;
+    const widthInPoints = (box.bounding_box.max_x - box.bounding_box.min_x) * INCHES_TO_POINTS;
+    const heightInPoints = (box.bounding_box.max_y - box.bounding_box.min_y) * INCHES_TO_POINTS;
+
+    // Convert to percentages relative to PDF dimensions
+    const leftPercent = (xInPoints / pdfWidth) * 100;
+    const topPercent = (yInPoints / pdfHeight) * 100;
+    const widthPercent = (widthInPoints / pdfWidth) * 100;
+    const heightPercent = (heightInPoints / pdfHeight) * 100;
+
+    return {
+      pageIndex: currentPage - 1,
+      left: Math.max(0, Math.min(100, leftPercent)),
+      top: Math.max(0, Math.min(100, topPercent)),
+      width: Math.max(0, Math.min(100 - leftPercent, widthPercent)),
+      height: Math.max(0, Math.min(100 - topPercent, heightPercent)),
+    };
+  });
+};
+```
+
+## Coming Soon
+- **Variable chunking** — flexible bounding box grouping (not just paragraphs or words).
+
+---
+
+## API Reference
+
+<Card title="Process File API" href="api-reference/endpoint/process" icon="code" />

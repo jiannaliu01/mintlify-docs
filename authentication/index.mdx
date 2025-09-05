@@ -1,0 +1,26 @@
+---
+title: Authentication
+subtitle: Learn how to authenticate your requests to the Cardinal API
+---
+
+## Overview
+
+The Cardinal API uses an **API key passed via the `x-api-key` header** for all requests.  
+Every request must include your API key or it will be rejected.
+
+## Obtaining an API Key
+
+1. Log into the [Cardinal Dashboard](https://dashboard.cardinal.ai)  
+2. Navigate to **Settings → API Keys**  
+3. Create a new API key or copy an existing one  
+
+**Important**: Keep your API keys secure. Do not share them publicly, and rotate them regularly. If a key is compromised, revoke it immediately from the dashboard.
+
+## Making Authenticated Requests
+
+### HTTP Header Format
+
+Include your API key in the request headers:
+
+```bash
+x-api-key: <YOUR_API_KEY>

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Document Processing API",
-    "description": "API for processing PDF/image files into structured Markdown and extracting structured JSON using schemas.",
-    "version": "1.0.0"
+    "description": "API for processing PDF/image files into structured Markdown and optionally extracting structured JSON using schemas.",
+    "version": "1.0.1"
   },
   "servers": [
     {
@@ -14,7 +14,7 @@
     "/process": {
       "post": {
         "summary": "Process File",
-        "description": "Convert PDF or image pages into clean, structured Markdown, and optionally extract structured JSON using a schema.",
+        "description": "Convert PDF or image pages into clean, structured Markdown. Optionally extract structured JSON using a schema. Post-processing (barcodes, signatures, etc.) is off by default and, when enabled, will add latency.",
         "operationId": "processFile",
         "security": [
           {
@@ -31,31 +31,31 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "PDF or image file to upload (required if no fileUrl)"
+                    "description": "PDF or image file to upload (required if no fileUrl)."
                   },
                   "fileUrl": {
                     "type": "string",
                     "format": "uri",
-                    "description": "Publicly accessible URL of the file to process (required if no file)"
+                    "description": "Publicly accessible URL of the file to process (required if no file)."
                   },
                   "post_processing_on": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Enable or disable text post-processing"
+                    "default": false,
+                    "description": "Enable advanced passes (e.g., barcode/signature detection). Note: Enabling this will increase latency."
                   },
                   "start_page": {
                     "type": "integer",
                     "default": 1,
-                    "description": "Page number to start processing from"
+                    "description": "Page number to start processing from."
                   },
                   "ephemeral": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, results are not stored"
+                    "description": "If true, results are not stored; any generated assets are short-lived."
                   },
                   "schema": {
                     "type": "string",
-                    "description": "Schema definition to guide extraction (JSON Schema or Zod string)"
+                    "description": "Schema definition to guide extraction (JSON Schema or Zod string)."
                   },
                   "schema_format": {
                     "type": "string",
@@ -63,17 +63,17 @@
                       "json",
                       "zod"
                     ],
-                    "description": "Format of the schema provided."
+                    "description": "Format of the provided schema."
                   },
                   "boundingBoxesParagraphs": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Controls granularity of returned text bounding boxes. If true (default), bounding boxes are grouped per paragraph. If false, bounding boxes are grouped per word."
+                    "description": "Controls granularity of returned text bounding boxes. If true, boxes are grouped per paragraph; if false, per word. (Does not affect barcode/signature boxes.)"
                   },
                   "markdown": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Controls table handling in output. By default, all content is returned as Markdown, except tables which remain in HTML to preserve structure. If true, tables are also converted to Markdown using the markdownify library (may cause formatting issues)."
+                    "description": "Controls table handling in output. By default, all content is returned as Markdown except tables which remain HTML to preserve structure. If true, tables are also converted to Markdown via markdownify (may cause formatting issues)."
                   }
                 },
                 "oneOf": [
@@ -119,124 +119,232 @@
                         "properties": {
                           "content": {
                             "type": "string",
-                            "description": "Extracted Markdown content"
+                            "description": "Extracted Markdown content."
                           },
                           "height": {
                             "type": "number"
                           },
                           "width": {
                             "type": "number"
+                          }
+                        }
+                      }
+                    },
+                    "barcodes": {
+                      "type": "array",
+                      "description": "Present when post_processing_on=true and barcodes are detected.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "image_url": {
+                            "type": "string",
+                            "format": "uri"
                           },
-                          "barcodes": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string"
-                                },
-                                "value": {
-                                  "type": "string"
-                                },
-                                "bounding_box": {
-                                  "type": "object",
-                                  "properties": {
-                                    "x": {
-                                      "type": "number"
-                                    },
-                                    "y": {
-                                      "type": "number"
-                                    },
-                                    "width": {
-                                      "type": "number"
-                                    },
-                                    "height": {
-                                      "type": "number"
-                                    }
-                                  }
-                                }
+                          "bounding_box": {
+                            "type": "object",
+                            "properties": {
+                              "x_min": {
+                                "type": "number"
+                              },
+                              "y_min": {
+                                "type": "number"
+                              },
+                              "x_max": {
+                                "type": "number"
+                              },
+                              "y_max": {
+                                "type": "number"
+                              },
+                              "width": {
+                                "type": "number"
+                              },
+                              "height": {
+                                "type": "number"
                               }
                             }
                           },
-                          "signatures": {
+                          "original_polygon": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string"
-                                },
-                                "confidence": {
+                              "type": "number"
+                            },
+                            "description": "Polygon coordinates of the detected region."
+                          },
+                          "barcode_type": {
+                            "type": "string"
+                          },
+                          "barcode_value": {
+                            "type": "string"
+                          },
+                          "page_number": {
+                            "type": "integer"
+                          },
+                          "confidence": {
+                            "type": "number"
+                          },
+                          "barcode_index": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "signatures": {
+                      "type": "array",
+                      "description": "Present when post_processing_on=true and signatures are detected.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "is_signature": {
+                            "type": "string",
+                            "description": "\"yes\" or \"no\""
+                          },
+                          "signed_by": {
+                            "type": "string"
+                          },
+                          "signature_url": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        }
+                      }
+                    },
+                    "processed_tables": {
+                      "type": "array",
+                      "description": "Dense/small-text tables extracted automatically.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "table_index": {
+                            "type": "integer"
+                          },
+                          "page_number": {
+                            "type": "integer"
+                          },
+                          "bounding_box": {
+                            "type": "object",
+                            "properties": {
+                              "page_number": {
+                                "type": "integer"
+                              },
+                              "min_x": {
+                                "type": "number"
+                              },
+                              "min_y": {
+                                "type": "number"
+                              },
+                              "max_x": {
+                                "type": "number"
+                              },
+                              "max_y": {
+                                "type": "number"
+                              },
+                              "row_count": {
+                                "type": "integer"
+                              },
+                              "column_count": {
+                                "type": "integer"
+                              },
+                              "polygon": {
+                                "type": "array",
+                                "items": {
                                   "type": "number"
-                                },
-                                "bounding_box": {
-                                  "type": "object",
-                                  "properties": {
-                                    "x": {
-                                      "type": "number"
-                                    },
-                                    "y": {
-                                      "type": "number"
-                                    },
-                                    "width": {
-                                      "type": "number"
-                                    },
-                                    "height": {
-                                      "type": "number"
-                                    }
-                                  }
                                 }
                               }
                             }
                           },
-                          "image_metadata": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "image_id": {
-                                  "type": "string"
-                                },
-                                "format": {
-                                  "type": "string"
-                                },
-                                "size": {
-                                  "type": "object",
-                                  "properties": {
-                                    "width": {
-                                      "type": "integer"
-                                    },
-                                    "height": {
-                                      "type": "integer"
-                                    }
-                                  }
-                                },
-                                "position": {
-                                  "type": "object",
-                                  "properties": {
-                                    "x": {
-                                      "type": "integer"
-                                    },
-                                    "y": {
-                                      "type": "integer"
-                                    }
-                                  }
-                                },
-                                "caption": {
-                                  "type": "string"
-                                },
-                                "cropped_image_url": {
-                                  "type": "string"
-                                }
+                          "row_count": {
+                            "type": "integer"
+                          },
+                          "column_count": {
+                            "type": "integer"
+                          },
+                          "image_format": {
+                            "type": "string"
+                          },
+                          "crop_coordinates": {
+                            "type": "object",
+                            "properties": {
+                              "left": {
+                                "type": "number"
+                              },
+                              "top": {
+                                "type": "number"
+                              },
+                              "right": {
+                                "type": "number"
+                              },
+                              "bottom": {
+                                "type": "number"
+                              },
+                              "width": {
+                                "type": "number"
+                              },
+                              "height": {
+                                "type": "number"
                               }
                             }
+                          },
+                          "dpi_x": {
+                            "type": "number"
+                          },
+                          "dpi_y": {
+                            "type": "number"
+                          },
+                          "text_content": {
+                            "type": "string",
+                            "description": "Extracted HTML/Markdown table text."
+                          },
+                          "html_code": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "image_metadata": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "image_id": {
+                            "type": "string"
+                          },
+                          "format": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "object",
+                            "properties": {
+                              "width": {
+                                "type": "integer"
+                              },
+                              "height": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "position": {
+                            "type": "object",
+                            "properties": {
+                              "x": {
+                                "type": "integer"
+                              },
+                              "y": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "caption": {
+                            "type": "string"
+                          },
+                          "cropped_image_url": {
+                            "type": "string"
                           }
                         }
                       }
                     },
                     "schema_result": {
                       "type": "object",
-                      "description": "Optional structured schema extracted when schema and schema_format are provided",
+                      "description": "Structured schema extracted when schema + schema_format are provided.",
                       "additionalProperties": true
                     }
                   }
@@ -253,6 +361,81 @@
                       "width": 612.0
                     }
                   ],
+                  "barcodes": [
+                    {
+                      "image_url": "https://cardinal-ai-bucket.s3.amazonaws.com/jianna%40leafpress.io/barcode_1_1_DocumentBarcodeKind.CODE128.png?...",
+                      "bounding_box": {
+                        "x_min": 1506.6869,
+                        "y_min": 107.3429,
+                        "x_max": 1835.3657,
+                        "y_max": 154.0509,
+                        "width": 328.6788,
+                        "height": 46.7080
+                      },
+                      "original_polygon": [
+                        7.5815,
+                        0.5861,
+                        9.1245,
+                        0.5861,
+                        9.1245,
+                        0.7195,
+                        7.5815,
+                        0.7195
+                      ],
+                      "barcode_type": "Code128",
+                      "barcode_value": "CFP2023112000005",
+                      "page_number": 1,
+                      "confidence": 1.0,
+                      "barcode_index": 1
+                    }
+                  ],
+                  "signatures": [
+                    {
+                      "is_signature": "yes",
+                      "signed_by": "DR. Harding",
+                      "signature_url": "https://cardinal-ai-bucket.s3.amazonaws.com/.../signature_8024ce94-fa21-474a-9dbe-c80c603ba5db.png"
+                    }
+                  ],
+                  "processed_tables": [
+                    {
+                      "table_index": 0,
+                      "page_number": 1,
+                      "bounding_box": {
+                        "page_number": 1,
+                        "min_x": 0.284,
+                        "min_y": 0.8275,
+                        "max_x": 3.6697,
+                        "max_y": 2.4552,
+                        "row_count": 26,
+                        "column_count": 10,
+                        "polygon": [
+                          0.284,
+                          0.8275,
+                          3.6687,
+                          0.8282,
+                          3.6697,
+                          2.4552,
+                          0.2852,
+                          2.4547
+                        ]
+                      },
+                      "row_count": 26,
+                      "column_count": 10,
+                      "image_format": "png",
+                      "crop_coordinates": {
+                        "left": 85,
+                        "top": 248,
+                        "right": 1100,
+                        "bottom": 736,
+                        "width": 1015,
+                        "height": 488
+                      },
+                      "dpi_x": 300.0,
+                      "dpi_y": 300.0,
+                      "text_content": "<table>...</table>",
+                      "html_code": ""
+                    }
+                  ],
                   "schema_result": {
                     "invoiceNumber": "250339",
                     "dueDate": "2025-04-18"
@@ -266,132 +449,6 @@
           },
           "401": {
             "description": "Unauthorized (invalid or missing API key)"
-          }
-        }
-      }
-    },
-    "/extract": {
-      "post": {
-        "summary": "Extract Structured Data by Schema",
-        "description": "Extracts structured JSON from a PDF using a required schema. Accepts a file upload **or** a `fileUrl`. PDF only.",
-        "operationId": "extractSchema",
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "PDF file to upload (required if no fileUrl). Only .pdf allowed."
-                  },
-                  "fileUrl": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "Publicly accessible URL of the PDF to process (required if no file). Only .pdf allowed."
-                  },
-                  "schema": {
-                    "type": "string",
-                    "description": "Required schema definition (JSON Schema or Zod string) describing the fields to extract."
-                  }
-                },
-                "required": [
-                  "schema"
-                ],
-                "oneOf": [
-                  {
-                    "required": [
-                      "file"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "fileUrl"
-                    ]
-                  }
-                ]
-              },
-              "encoding": {
-                "file": {
-                  "contentType": "application/pdf"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful schema extraction",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "JSON schema extracted successfully"
-                    },
-                    "response": {
-                      "oneOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": true
-                        },
-                        {
-                          "type": "string",
-                          "description": "May be a JSON string depending on configuration."
-                        }
-                      ],
-                      "description": "Model's structured output matching the provided schema."
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "response"
-                  ]
-                },
-                "examples": {
-                  "jsonObject": {
-                    "summary": "Typical object response",
-                    "value": {
-                      "message": "JSON schema extracted successfully",
-                      "response": {
-                        "invoiceNumber": "250339",
-                        "invoiceDate": "2025-04-08",
-                        "dueDate": "2025-04-18",
-                        "totalDue": 1234.56
-                      }
-                    }
-                  },
-                  "jsonString": {
-                    "summary": "Stringified JSON response",
-                    "value": {
-                      "message": "JSON schema extracted successfully",
-                      "response": "{\"invoiceNumber\":\"250339\",\"invoiceDate\":\"2025-04-08\",\"dueDate\":\"2025-04-18\",\"totalDue\":1234.56}"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request (missing file/fileUrl, missing schema, or unsupported file type)"
-          },
-          "401": {
-            "description": "Unauthorized (invalid or missing API key for non-demo requests)"
-          },
-          "415": {
-            "description": "Unsupported Media Type (only application/pdf accepted for /extract)"
-          },
-          "500": {
-            "description": "Internal Server Error (schema extraction failed)"
           }
         }
       }

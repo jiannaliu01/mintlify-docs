@@ -1,0 +1,47 @@
+---
+title: "Signature Detection"
+description: "Detect and extract signatures from documents, including signer metadata."
+---
+
+### Signature Detection
+
+Cardinal can automatically detect **signatures** within documents.  
+For each detected signature, you’ll receive:  
+
+- **`signature_url`** – a cropped image of the detected signature.  
+- **`is_signature`** – whether the region is confirmed to be a signature (`"yes"` or `"no"`).  
+- **`signed_by`** – signer name.
+
+---
+
+### Post-Processing
+
+Signature detection requires **post-processing** to be enabled.  
+
+- Default: `post_processing_on = false`  
+- To **enable** signature detection (and other advanced passes), set `post_processing_on = true`.  
+- ⚠️ Enabling post-processing will **add latency** to your requests, since additional detection passes are run.  
+
+---
+
+### Example Response (excerpt)
+
+```json
+{
+  "signatures": [
+    {
+      "is_signature": "yes",
+      "signed_by": "Dr. John Doe",
+      "signature_url": ""
+    }
+  ]
+}
+```
+
+This enables use cases like:
+
+- Verifying the presence of required signatures.
+- Identifying who signed a document.
+- Automating compliance workflows that require signature verification.
+
+<Note> Signature detection is included in the JSON output alongside other extracted elements such as tables, barcodes, and figures. </Note> 

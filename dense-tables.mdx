@@ -1,0 +1,72 @@
+---
+title: "Dense Tables"
+description: "Extract and normalize dense, small-text tables with bounding boxes and structured content."
+---
+
+### Dense Tables
+
+Cardinal automatically detects and processes **dense tables** — cases where a document contains many small-text tables that are difficult to parse cleanly with normal extraction.  
+
+Results are always returned under the **`processed_tables`** field, without requiring additional flags.  
+
+For each table, you’ll receive:  
+
+- **`table_index`** – index of the table on the page.  
+- **`page_number`** – page where the table appears.  
+- **`bounding_box`** – normalized geometry including `min_x`, `min_y`, `max_x`, `max_y`, plus row/column counts and polygon coordinates.  
+- **`row_count` / `column_count`** – detected table dimensions.  
+- **`image_format`** – output crop format (e.g. `png`).  
+- **`crop_coordinates`** – pixel coordinates for cropped table images.  
+- **`dpi_x` / `dpi_y`** – resolution used for rendering.  
+- **`text_content`** – extracted HTML/Markdown table text.  
+- **`html_code`** – cleaned HTML version of the table (when available).  
+
+---
+
+### Example Response (excerpt)
+
+```json
+{
+  "processed_tables": [
+    {
+      "table_index": 0,
+      "page_number": 1,
+      "bounding_box": {
+        "page_number": 1,
+        "min_x": 0.284,
+        "min_y": 0.8275,
+        "max_x": 3.6697,
+        "max_y": 2.4552,
+        "row_count": 26,
+        "column_count": 10,
+        "polygon": [0.284, 0.8275, 3.6687, 0.8282, 3.6697, 2.4552, 0.2852, 2.4547]
+      },
+      "row_count": 26,
+      "column_count": 10,
+      "image_format": "png",
+      "crop_coordinates": {
+        "left": 85,
+        "top": 248,
+        "right": 1100,
+        "bottom": 736,
+        "width": 1015,
+        "height": 488
+      },
+      "dpi_x": 300.0,
+      "dpi_y": 300.0,
+      "text_content": "<table> ... </table>",
+      "html_code": ""
+    }
+  ]
+}
+```
+
+### Why Dense Tables?
+
+Some engineering, financial, and architectural documents contain dozens of tiny tables (e.g., schedules, parts lists, cell plans).
+These tables often break normal Markdown extraction. With processed_tables, you get both:
+- Cropped table images for visual reference.
+- Normalized bounding boxes for precise placement.
+- Extracted HTML/Markdown text for structured parsing.
+
+<Note> Dense table extraction is always included automatically in the JSON output under `processed_tables`. No additional configuration is needed. </Note> 

@@ -1,0 +1,75 @@
+---
+title: "Output Response"
+description: "Understand the structure of Cardinal’s API responses."
+---
+
+## Overview
+
+Every Cardinal API call returns a **JSON response**.  
+The baseline structure is consistent, but additional fields may appear depending on which flags you enable (e.g., schema extraction, bounding boxes, image metadata).
+
+---
+
+## Successful Response
+
+**HTTP 200 — application/json**
+
+```json
+{
+  "success": true,
+  "total_pages": 2,
+  "successful_pages": 2,
+  "failed_pages": 0,
+  "pages": [
+    {
+      "content": "ACME CORPORATION\nInvoice #INV-2024-001\n...",
+      "height": 792,
+      "width": 612,
+      "barcodes": [],
+      "signatures": [],
+      "image_metadata": []
+    }
+  ],
+  "schema_result": {
+    "invoiceNumber": "250339",
+    "dueDate": "2025-04-18"
+  }
+}
+```
+
+## Top-level fields
+
+- success (boolean) — Whether the request completed successfully.
+- total_pages (integer) — Total number of pages processed.
+- successful_pages (integer) — Count of pages processed without error.
+- failed_pages (integer) — Count of pages that failed.
+- pages (array) — Page-by-page extraction results (Markdown + metadata).
+- schema_result (object, optional) — Only present if you provided a schema. Contains structured extraction aligned to your schema.
+
+## Pagination
+
+Large documents are **paginated into responses of ~100 pages each.**
+
+Each response chunk contains the same schema (success, total_pages, pages, etc.).
+
+You can combine results client-side to reconstruct full documents.
+
+## Errors
+
+Non-200 responses indicate failure:
+- 400 — Bad request (invalid input or missing parameters)
+- 401 — Unauthorized (invalid or missing API key)
+- 415 — Unsupported media type
+- 500 — Internal server error (processing failed)
+
+Error responses include a message describing the issue.
+
+## Cost Tracking
+
+Like Gemini and other providers, Cardinal will also support returning how many credits were consumed in the response.
+
+---
+
+## API Reference
+
+<Card title="Process File API" href="api-reference/endpoint/process" icon="code" />
