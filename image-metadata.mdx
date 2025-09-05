@@ -1,0 +1,72 @@
+---
+title: "Image Metadata"
+description: "Extract image references and metadata alongside Markdown output."
+---
+
+## Overview
+
+When Cardinal extracts figures and images, the Markdown output contains **lightweight placeholders** like:
+
+```markdown
+Here is a chart of quarterly revenue: <figure1>
+```
+
+These placeholders are not expanded in the Markdown itself.
+
+Instead, the corresponding metadata is provided separately in the image_metadata field of the API response.
+
+---
+
+## How It Works
+
+- **Markdown output**: contains <figureN> tags (e.g., <figure1>, <figure2>)
+- **API response**: contains an image_metadata array with entries that match those placeholders by name
+
+Each image_metadata entry includes:
+- name → matches the placeholder in Markdown (figure1, figure2, …)
+- image_url → direct link to the cropped figure image
+- bounding_box → coordinates of the figure in the page
+- metadata → additional properties (format, size, caption, etc.)
+
+---
+
+## Example
+
+### Markdown Output
+```markdown
+Revenue grew steadily across the quarter: <figure1>
+```
+ 
+### API Response 
+```json 
+{
+  "pages": [
+    {
+      "content": "Revenue grew steadily across the quarter: <figure1>",
+      "image_metadata": [
+        {
+          "name": "figure1",
+          "image_url": "https://cdn.trycardinal.ai/tmp/fig-1.png",
+          "bounding_box": {
+            "x": 100,
+            "y": 200,
+            "width": 400,
+            "height": 300
+          },
+          "metadata": {
+            "format": "png",
+            "size": { "width": 800, "height": 600 },
+            "caption": "Quarterly revenue trend"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+--- 
+## Use Cases
+
+- Render figures inline by replacing <figureN> with the associated image_url
+- Preserve document flow while separating text and visuals cleanly
+- Enable interactive UIs (hover over <figure1> → show chart preview)
