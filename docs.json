@@ -30,8 +30,8 @@
           {
             "group": "Main Capabilities",
             "pages": [
-              "Markdown",
-              "JSON",
+              "markdown",
+              "json",
               "output-response"
             ]
           },
