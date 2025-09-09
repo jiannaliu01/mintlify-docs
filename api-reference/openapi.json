@@ -578,6 +578,188 @@
           }
         }
       }
+    },
+    "/compare": {
+      "post": {
+        "summary": "Compare Cardinal results against a baseline",
+        "description": "Runs Cardinal extraction on a PDF or image and returns the standard processing payload **plus** a `dashboard_url` for the evals UI. Optionally include `original_results` (e.g., a Markdown string from another OCR system) to store side-by-side comparison data for the dashboard.",
+        "operationId": "compareFile",
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF or image file to upload (required if no fileUrl). Allowed: .pdf, .jpg, .jpeg, .png"
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Publicly accessible URL of the file to process (required if no file)."
+                  },
+                  "post_processing_on": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable advanced passes (e.g., barcode/signature detection)."
+                  },
+                  "start_page": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "description": "Page number to start processing from."
+                  },
+                  "ephemeral": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, results are not persisted; any generated assets are short-lived."
+                  },
+                  "showBoundingBox": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include bounding box overlays for text blocks."
+                  },
+                  "schema_format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "zod"
+                    ],
+                    "description": "Format of `schema`."
+                  },
+                  "markdown": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, converts tables to Markdown (may be lossy); otherwise tables stay as HTML."
+                  },
+                  "boundingBoxesParagraphs": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "If true, text boxes are grouped per paragraph; if false, per word."
+                  },
+                  "original_results": {
+                    "type": "string",
+                    "description": "Optional Markdown string containing baseline results to compare against (e.g., another vendor's OCR output). Stored for the evals dashboard alongside Cardinal results."
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "fileUrl"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful compare run. Returns standard processing fields plus a `dashboard_url` for the evals UI.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dashboard_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Link to the evals dashboard view for this comparison."
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "The response is the normal /process payload merged with { dashboard_url }."
+                },
+                "examples": {
+                  "example": {
+                    "summary": "Merged payload with evals URL",
+                    "value": {
+                      "success": true,
+                      "total_pages": 2,
+                      "successful_pages": 2,
+                      "failed_pages": 0,
+                      "pages": [
+                        {
+                          "content": "ACME CORPORATION\\nInvoice #INV-2024-001\\n...",
+                          "height": 792.0,
+                          "width": 612.0
+                        }
+                      ],
+                      "processed_tables": [
+                        {
+                          "table_index": 0,
+                          "page_number": 1,
+                          "bounding_box": {
+                            "page_number": 1,
+                            "min_x": 0.284,
+                            "min_y": 0.8275,
+                            "max_x": 3.6697,
+                            "max_y": 2.4552,
+                            "row_count": 26,
+                            "column_count": 10,
+                            "polygon": [
+                              0.284,
+                              0.8275,
+                              3.6687,
+                              0.8282,
+                              3.6697,
+                              2.4552,
+                              0.2852,
+                              2.4547
+                            ]
+                          },
+                          "row_count": 26,
+                          "column_count": 10,
+                          "image_format": "png",
+                          "crop_coordinates": {
+                            "left": 85,
+                            "top": 248,
+                            "right": 1100,
+                            "bottom": 736,
+                            "width": 1015,
+                            "height": 488
+                          },
+                          "dpi_x": 300.0,
+                          "dpi_y": 300.0,
+                          "text_content": "<table>...</table>",
+                          "html_code": ""
+                        }
+                      ],
+                      "schema_result": {
+                        "invoiceNumber": "250339",
+                        "dueDate": "2025-04-18"
+                      },
+                      "dashboard_url": "https://dashboard.trycardinal.ai/evals?file_name=7db1f2f3-1a2b-4c5d-9e0f-112233445566"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid input or missing parameters)"
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing API key for non-demo requests)"
+          },
+          "500": {
+            "description": "Internal Server Error (comparison processing failed)"
+          }
+        }
+      }
     }
   },
   "components": {
