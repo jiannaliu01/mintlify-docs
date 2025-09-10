@@ -1,0 +1,262 @@
+---
+title: "AWS"
+description: "How to deploy Cardinal using Amazon ECS with EC2 instances for cost-effective, scalable container hosting."
+---
+
+## Prerequisites
+
+- **Docker** installed and running on your machine - [Docker documentation](https://docs.docker.com/get-docker/)
+- **AWS CLI** installed and configured - [AWS CLI setup guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
+- Access to Cardinal's private ECR repository (enterprise clients only)
+
+---
+
+## Bedrock Model Access Requirements
+
+**For AWS GovCloud Deployments:**
+
+Cardinal requires access to a fine-tuned model hosted on Amazon Bedrock. Due to GovCloud compliance and data sovereignty requirements, cross-account access from commercial AWS accounts is typically not permitted.
+
+**Required Setup:**
+- We will need access to deploy our fine-tuned model directly in your AWS GovCloud account, OR
+- You will need to provide us with a dedicated Bedrock-enabled AWS GovCloud account within your organization's compliance boundary
+
+**Why This Matters:**
+- FedRAMP and other compliance frameworks require all data processing to occur within authorized boundaries
+- Cross-account dependencies from commercial AWS to GovCloud violate most security authorization boundaries
+- Model inference must happen within your controlled environment
+
+**Implementation Options:**
+1. **Preferred:** Grant us temporary access to deploy our model in your GovCloud Bedrock service
+2. **Alternative:** We can provide model artifacts and training procedures for you to recreate the model in your environment
+3. **Enterprise:** We can establish a dedicated GovCloud presence within your compliance boundary
+
+**Additional IAM Requirements:**
+The Cardinal ECS tasks will need additional IAM permissions for Bedrock access:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel"
+      ],
+      "Resource": "arn:aws:bedrock:*:YOUR_ACCOUNT_ID:custom-model/cardinal-model-*"
+    }
+  ]
+}
+```
+
+Contact your Cardinal representative to coordinate Bedrock model deployment before beginning the ECS setup.
+
+---
+
+## Infrastructure Setup
+
+### AWS Infrastructure Prerequisites
+Follow AWS documentation to set up the basic infrastructure:
+
+- [Create an ECS cluster](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/create_cluster.html) - name it `cardinal-cluster`
+- [Set up IAM roles for ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html) - you'll need both task execution and instance roles
+- [Create security groups](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/working-with-security-groups.html) - allow inbound traffic on port 8080 and SSH (port 22) if needed
+- [Launch EC2 instances with ECS-optimized AMI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html) - see compute requirements below
+
+### Cardinal-Specific Authentication
+
+Configure your AWS CLI and authenticate to Cardinal's ECR:
+
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+
+# Authenticate to Cardinal ECR registry
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 637423191408.dkr.ecr.us-east-2.amazonaws.com
+```
+
+---
+
+## Cardinal Task Definition
+
+Create a task definition file `cardinal-task-def.json` with Cardinal-specific configuration:
+
+```json
+{
+  "family": "cardinal-task",
+  "networkMode": "bridge",
+  "requiresCompatibilities": ["EC2"],
+  "cpu": "6144",
+  "memory": "28672",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "cardinal",
+      "image": "637423191408.dkr.ecr.us-east-2.amazonaws.com/cardinalai:latest",
+      "cpu": 6144,
+      "memory": 28672,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cardinal-task",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        {
+          "name": "CARDINAL_ACCESS_KEY",
+          "value": "your_cardinal_access_key"
+        },
+        {
+          "name": "CARDINAL_SECRET",
+          "value": "your_cardinal_secret"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Register the task definition:
+
+```bash
+# Create CloudWatch log group first
+aws logs create-log-group --log-group-name /ecs/cardinal-task --region us-east-2
+
+# Register the task definition
+aws ecs register-task-definition --cli-input-json file://cardinal-task-def.json
+```
+
+---
+
+## Deploy and Manage Cardinal
+
+### Create and Deploy Service
+
+```bash
+# Create ECS service
+aws ecs create-service \
+  --cluster cardinal-cluster \
+  --service-name cardinal-service \
+  --task-definition cardinal-task \
+  --desired-count 1 \
+  --launch-type EC2
+
+# Check deployment status
+aws ecs describe-services --cluster cardinal-cluster --services cardinal-service
+```
+
+### Update Deployment
+When you need to deploy updates:
+
+```bash
+# Force new deployment with latest image
+aws ecs update-service \
+  --cluster cardinal-cluster \
+  --service cardinal-service \
+  --force-new-deployment
+
+# Or update with new task definition revision
+aws ecs update-service \
+  --cluster cardinal-cluster \
+  --service cardinal-service \
+  --task-definition cardinal-task:2
+```
+
+---
+
+## Compute Requirements
+
+Cardinal requires specific compute resources for optimal performance:
+
+**Required Instance Type:** m5.2xlarge or equivalent
+- **vCPUs:** 8 cores minimum  
+- **Memory:** 32 GB RAM minimum
+- **Storage:** 100+ GB EBS storage
+- **Network:** Enhanced networking enabled
+
+**Why m5.2xlarge?**
+- Provides 8 vCPUs and 32 GB RAM total
+- Task allocation: ~6 vCPUs and 28 GB RAM (leaves resources for OS and ECS agent)
+- Best price-performance ratio for Cardinal's workload
+
+**Alternative Instance Types:**
+- `c5.2xlarge`: 8 vCPU, 16 GB (compute-optimized, lower memory)
+- `m5.4xlarge`: 16 vCPU, 64 GB (for scaling beyond single instance)
+- `r5.2xlarge`: 8 vCPU, 64 GB (memory-optimized if needed)
+
+---
+
+## Auto Scaling (Optional)
+
+For production deployments, set up auto scaling:
+
+### ECS Service Auto Scaling
+```bash
+# Register scalable target
+aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/cardinal-cluster/cardinal-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --min-capacity 1 \
+  --max-capacity 10
+
+# Create CPU-based scaling policy
+aws application-autoscaling put-scaling-policy \
+  --policy-name cardinal-cpu-scaling \
+  --service-namespace ecs \
+  --resource-id service/cardinal-cluster/cardinal-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration '{
+    "TargetValue": 70.0,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+    }
+  }'
+```
+
+### EC2 Auto Scaling
+For automatic instance scaling, follow the [AWS Auto Scaling Groups documentation](https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html).
+
+---
+
+## Load Balancer Integration (Optional)
+
+For production with multiple instances, add an Application Load Balancer following the [AWS ALB documentation](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/). Configure health checks to point to Cardinal's `/health` endpoint.
+
+---
+
+## Cost Analysis
+
+**Monthly cost for m5.2xlarge (us-east-2):**
+- **Instance cost:** ~$280/month (24/7 On-Demand)
+- **EBS storage:** ~$10/month (100 GB GP3)
+- **Total:** ~$290/month
+
+---
+
+## Monitoring and Troubleshooting
+
+### Service Management
+```bash
+# Check service status
+aws ecs describe-services --cluster cardinal-cluster --services cardinal-service
+
+# View running tasks
+aws ecs list-tasks --cluster cardinal-cluster --service-name cardinal-service
+
+# View logs
+aws logs tail /ecs/cardinal-task --follow
+```
+
+### CloudWatch Metrics
+Access CPU, memory, and network metrics through the AWS Console under ECS → Clusters → cardinal-cluster → Metrics.

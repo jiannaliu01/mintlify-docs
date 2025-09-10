@@ -1,0 +1,660 @@
+---
+title: "Cardinal Deployment Guide"
+description: "Step-by-step guide to deploy Cardinal on AWS using ECS Fargate in a VPC with Bedrock integration."
+---
+
+## Prerequisites
+
+- AWS CLI configured with appropriate permissions
+- Docker installed locally
+- AWS account with ECS, VPC, and Bedrock access
+- Cardinal application code ready for containerization
+
+## Architecture Overview
+
+This deployment creates:
+- **VPC**: Isolated network environment
+- **ECS Fargate Container**: Serverless container hosting Cardinal
+- **Bedrock Integration**: AI services connectivity
+- **Security Groups**: Network access control
+
+## Step 1: Create VPC Infrastructure
+
+```bash
+# Create VPC
+aws ec2 create-vpc \
+  --cidr-block 10.0.0.0/16 \
+  --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=cardinal-vpc}]'
+
+# Create public subnet
+aws ec2 create-subnet \
+  --vpc-id <vpc-id> \
+  --cidr-block 10.0.1.0/24 \
+  --availability-zone us-east-1a \
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=cardinal-public-subnet}]'
+
+# Create internet gateway
+aws ec2 create-internet-gateway \
+  --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=cardinal-igw}]'
+
+# Attach internet gateway to VPC
+aws ec2 attach-internet-gateway \
+  --internet-gateway-id <igw-id> \
+  --vpc-id <vpc-id>
+```
+
+## Step 2: Configure Security Groups
+
+```bash
+# Create security group for Cardinal container
+aws ec2 create-security-group \
+  --group-name cardinal-container-sg \
+  --description "Security group for Cardinal ECS container" \
+  --vpc-id <vpc-id>
+
+# Allow inbound traffic on port 8080
+aws ec2 authorize-security-group-ingress \
+  --group-id <security-group-id> \
+  --protocol tcp \
+  --port 8080 \
+  --cidr 0.0.0.0/0
+
+# Allow outbound HTTPS for Bedrock
+aws ec2 authorize-security-group-egress \
+  --group-id <security-group-id> \
+  --protocol tcp \
+  --port 443 \
+  --cidr 0.0.0.0/0
+```
+
+## Step 3: Create ECS Cluster
+
+```bash
+# Create ECS cluster
+aws ecs create-cluster \
+  --cluster-name cardinal-cluster \
+  --capacity-providers FARGATE \
+  --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
+```
+
+## Step 4: Build and Push Container Image
+
+```dockerfile
+# Dockerfile for Cardinal
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+EXPOSE 8080
+
+CMD ["npm", "start"]
+```
+
+```bash
+# Build and push to ECR
+aws ecr create-repository --repository-name cardinal
+
+# Get login token
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+
+# Build and tag image
+docker build -t cardinal .
+docker tag cardinal:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/cardinal:latest
+
+# Push image
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/cardinal:latest
+```
+
+## Step 5: Create IAM Role for ECS Task
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+```bash
+# Create execution role
+aws iam create-role \
+  --role-name cardinal-execution-role \
+  --assume-role-policy-document file://ecs-trust-policy.json
+
+# Attach AWS managed policy
+aws iam attach-role-policy \
+  --role-name cardinal-execution-role \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# Create and attach Bedrock policy
+aws iam create-policy \
+  --policy-name cardinal-bedrock-policy \
+  --policy-document file://bedrock-policy.json
+
+aws iam attach-role-policy \
+  --role-name cardinal-execution-role \
+  --policy-arn arn:aws:iam::<account-id>:policy/cardinal-bedrock-policy
+```
+
+## Step 6: Create ECS Task Definition
+
+```json
+{
+  "family": "cardinal-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "8192",
+  "memory": "32768",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/cardinal-execution-role",
+  "taskRoleArn": "arn:aws:iam::<account-id>:role/cardinal-execution-role",
+  "containerDefinitions": [
+    {
+      "name": "cardinal-container",
+      "image": "<account-id>.dkr.ecr.us-east-1.amazonaws.com/cardinal:latest",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "BEDROCK_ENDPOINT",
+          "value": "https://bedrock-runtime.us-east-1.amazonaws.com"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cardinal",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+```
+
+## Step 7: Create ECS Service
+
+```bash
+# Register task definition
+aws ecs register-task-definition \
+  --cli-input-json file://cardinal-task-definition.json
+
+# Create service
+aws ecs create-service \
+  --cluster cardinal-cluster \
+  --service-name cardinal-service \
+  --task-definition cardinal-task:1 \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[<subnet-id>],securityGroups=[<security-group-id>],assignPublicIp=ENABLED}"
+```
+
+## Step 8: Verify Deployment
+
+```bash
+# Check service status
+aws ecs describe-services \
+  --cluster cardinal-cluster \
+  --services cardinal-service
+
+# Get task public IP
+aws ecs list-tasks --cluster cardinal-cluster --service cardinal-service
+aws ecs describe-tasks --cluster cardinal-cluster --tasks <task-arn>
+
+# Test the application
+curl http://<public-ip>:8080/health
+```
+
+## Configuration Notes
+
+- **CPU/Memory**: 8 vCPU and 32GB RAM as specified in your diagram
+- **Port**: Application runs on port 8080
+- **Bedrock Access**: Ensure your AWS region supports Bedrock services
+- **Networking**: Public subnet with internet gateway for external access
+
+## Troubleshooting
+
+- Check CloudWatch logs: `/ecs/cardinal`
+- Verify security group rules allow traffic on port 8080
+- Ensure IAM roles have correct Bedrock permissions
+- Confirm container image is available in ECR
+
+## Next Steps
+
+- Set up Application Load Balancer for production traffic
+- Configure auto-scaling based on CPU/memory metrics
+- Implement blue-green deployments
+- Add monitoring and alerting with CloudWatch
+
+- AWS CLI installed and configured
+- Docker installed locally
+- Your Cardinal Docker image ready
+- AWS account with appropriate permissions
+
+## Step 1: Create VPC and Networking
+
+### Create VPC
+```bash
+# Create VPC
+aws ec2 create-vpc \
+  --cidr-block 10.0.0.0/16 \
+  --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=cardinal-vpc}]'
+
+# Note the VPC ID from output
+export VPC_ID="vpc-xxxxxxxxx"
+```
+
+### Create Subnets
+```bash
+# Create private subnet in AZ 1
+aws ec2 create-subnet \
+  --vpc-id $VPC_ID \
+  --cidr-block 10.0.1.0/24 \
+  --availability-zone us-east-1a \
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=cardinal-private-1}]'
+
+export PRIVATE_SUBNET_1="subnet-xxxxxxxxx"
+
+# Create private subnet in AZ 2 (for high availability)
+aws ec2 create-subnet \
+  --vpc-id $VPC_ID \
+  --cidr-block 10.0.2.0/24 \
+  --availability-zone us-east-1b \
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=cardinal-private-2}]'
+
+export PRIVATE_SUBNET_2="subnet-yyyyyyyyy"
+
+# Create public subnet for NAT gateway
+aws ec2 create-subnet \
+  --vpc-id $VPC_ID \
+  --cidr-block 10.0.10.0/24 \
+  --availability-zone us-east-1a \
+  --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=cardinal-public-1}]'
+
+export PUBLIC_SUBNET="subnet-zzzzzzzzz"
+```
+
+### Create Internet Gateway and NAT
+```bash
+# Create Internet Gateway
+aws ec2 create-internet-gateway \
+  --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=cardinal-igw}]'
+
+export IGW_ID="igw-xxxxxxxxx"
+
+# Attach to VPC
+aws ec2 attach-internet-gateway \
+  --vpc-id $VPC_ID \
+  --internet-gateway-id $IGW_ID
+
+# Allocate Elastic IP for NAT
+aws ec2 allocate-address \
+  --domain vpc \
+  --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=cardinal-nat-eip}]'
+
+export EIP_ALLOC="eipalloc-xxxxxxxxx"
+
+# Create NAT Gateway
+aws ec2 create-nat-gateway \
+  --subnet-id $PUBLIC_SUBNET \
+  --allocation-id $EIP_ALLOC \
+  --tag-specifications 'ResourceType=nat-gateway,Tags=[{Key=Name,Value=cardinal-nat}]'
+
+export NAT_GW_ID="nat-xxxxxxxxx"
+```
+
+### Create Route Tables
+```bash
+# Get main route table
+export MAIN_RT=$(aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=association.main,Values=true" \
+  --query 'RouteTables[0].RouteTableId' --output text)
+
+# Add route to internet gateway for public subnet
+aws ec2 create-route \
+  --route-table-id $MAIN_RT \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id $IGW_ID
+
+# Associate public subnet with main route table
+aws ec2 associate-route-table \
+  --subnet-id $PUBLIC_SUBNET \
+  --route-table-id $MAIN_RT
+
+# Create private route table
+aws ec2 create-route-table \
+  --vpc-id $VPC_ID \
+  --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=cardinal-private-rt}]'
+
+export PRIVATE_RT="rtb-xxxxxxxxx"
+
+# Add route to NAT gateway for private subnets
+aws ec2 create-route \
+  --route-table-id $PRIVATE_RT \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id $NAT_GW_ID
+
+# Associate private subnets with private route table
+aws ec2 associate-route-table \
+  --subnet-id $PRIVATE_SUBNET_1 \
+  --route-table-id $PRIVATE_RT
+
+aws ec2 associate-route-table \
+  --subnet-id $PRIVATE_SUBNET_2 \
+  --route-table-id $PRIVATE_RT
+```
+
+## Step 2: Create Security Groups
+
+```bash
+# Create security group for Cardinal app
+aws ec2 create-security-group \
+  --group-name cardinal-app-sg \
+  --description "Security group for Cardinal application" \
+  --vpc-id $VPC_ID \
+  --tag-specifications 'ResourceType=security-group,Tags=[{Key=Name,Value=cardinal-app-sg}]'
+
+export APP_SG_ID="sg-xxxxxxxxx"
+
+# Allow inbound HTTP/HTTPS from ALB (we'll create ALB SG next)
+aws ec2 authorize-security-group-ingress \
+  --group-id $APP_SG_ID \
+  --protocol tcp \
+  --port 3000 \
+  --source-group $ALB_SG_ID
+
+# Allow outbound HTTPS (for Bedrock API calls)
+aws ec2 authorize-security-group-egress \
+  --group-id $APP_SG_ID \
+  --protocol tcp \
+  --port 443 \
+  --cidr 0.0.0.0/0
+
+# Create security group for ALB
+aws ec2 create-security-group \
+  --group-name cardinal-alb-sg \
+  --description "Security group for Cardinal ALB" \
+  --vpc-id $VPC_ID \
+  --tag-specifications 'ResourceType=security-group,Tags=[{Key=Name,Value=cardinal-alb-sg}]'
+
+export ALB_SG_ID="sg-yyyyyyyyy"
+
+# Allow inbound HTTP/HTTPS from internet
+aws ec2 authorize-security-group-ingress \
+  --group-id $ALB_SG_ID \
+  --protocol tcp \
+  --port 80 \
+  --cidr 0.0.0.0/0
+
+aws ec2 authorize-security-group-ingress \
+  --group-id $ALB_SG_ID \
+  --protocol tcp \
+  --port 443 \
+  --cidr 0.0.0.0/0
+```
+
+## Step 3: Create IAM Role for ECS Task
+
+```bash
+# Create trust policy for ECS tasks
+cat > trust-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+# Create execution role
+aws iam create-role \
+  --role-name cardinal-execution-role \
+  --assume-role-policy-document file://trust-policy.json
+
+# Attach ECS execution policy
+aws iam attach-role-policy \
+  --role-name cardinal-execution-role \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# Create task role with Bedrock permissions
+cat > bedrock-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+
+aws iam create-policy \
+  --policy-name cardinal-bedrock-policy \
+  --policy-document file://bedrock-policy.json
+
+aws iam create-role \
+  --role-name cardinal-task-role \
+  --assume-role-policy-document file://trust-policy.json
+
+aws iam attach-role-policy \
+  --role-name cardinal-task-role \
+  --policy-arn arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/cardinal-bedrock-policy
+```
+
+## Step 4: Create ECR Repository and Push Image
+
+```bash
+# Create ECR repository
+aws ecr create-repository \
+  --repository-name cardinal \
+  --region us-east-1
+
+# Get login token and login to ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+
+# Tag your local image
+docker tag cardinal:latest $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/cardinal:latest
+
+# Push to ECR
+docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/cardinal:latest
+```
+
+## Step 5: Create ECS Cluster and Task Definition
+
+```bash
+# Create ECS cluster
+aws ecs create-cluster \
+  --cluster-name cardinal-cluster \
+  --capacity-providers FARGATE \
+  --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
+
+# Create task definition
+cat > task-definition.json << EOF
+{
+  "family": "cardinal-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "8192",
+  "memory": "32768",
+  "executionRoleArn": "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cardinal-execution-role",
+  "taskRoleArn": "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cardinal-task-role",
+  "containerDefinitions": [
+    {
+      "name": "cardinal",
+      "image": "$(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com/cardinal:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": 4000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "CARDINAL_PRODUCT_KEY",
+          "value": "your-product-key-here"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cardinal",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+# Create CloudWatch log group
+aws logs create-log-group --log-group-name /ecs/cardinal
+
+# Register task definition
+aws ecs register-task-definition \
+  --cli-input-json file://task-definition.json
+```
+
+## Step 6: Create Application Load Balancer
+
+```bash
+# Create ALB
+aws elbv2 create-load-balancer \
+  --name cardinal-alb \
+  --subnets $PUBLIC_SUBNET \
+  --security-groups $ALB_SG_ID \
+  --scheme internet-facing \
+  --type application
+
+export ALB_ARN="arn:aws:elasticloadbalancing:..."
+
+# Create target group
+aws elbv2 create-target-group \
+  --name cardinal-targets \
+  --protocol HTTP \
+  --port 3000 \
+  --vpc-id $VPC_ID \
+  --target-type ip \
+  --health-check-path /health
+
+export TG_ARN="arn:aws:elasticloadbalancing:..."
+
+# Create listener
+aws elbv2 create-listener \
+  --load-balancer-arn $ALB_ARN \
+  --protocol HTTP \
+  --port 80 \
+  --default-actions Type=forward,TargetGroupArn=$TG_ARN
+```
+
+## Step 7: Create ECS Service
+
+```bash
+# Create service
+aws ecs create-service \
+  --cluster cardinal-cluster \
+  --service-name cardinal-service \
+  --task-definition cardinal-task \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_1,$PRIVATE_SUBNET_2],securityGroups=[$APP_SG_ID],assignPublicIp=DISABLED}" \
+  --load-balancers targetGroupArn=$TG_ARN,containerName=cardinal,containerPort=3000
+```
+
+## Step 8: Verify Deployment
+
+```bash
+# Check service status
+aws ecs describe-services \
+  --cluster cardinal-cluster \
+  --services cardinal-service
+
+# Check task status
+aws ecs list-tasks \
+  --cluster cardinal-cluster \
+  --service-name cardinal-service
+
+# Get ALB DNS name
+aws elbv2 describe-load-balancers \
+  --load-balancer-arns $ALB_ARN \
+  --query 'LoadBalancers[0].DNSName' \
+  --output text
+```
+
+## Step 9: Test Your Deployment
+
+```bash
+# Get ALB DNS name and test
+ALB_DNS=$(aws elbv2 describe-load-balancers \
+  --load-balancer-arns $ALB_ARN \
+  --query 'LoadBalancers[0].DNSName' \
+  --output text)
+
+curl http://$ALB_DNS/health
+```
+
+## Environment Variables for Production
+
+For production, consider using AWS Secrets Manager:
+
+```bash
+# Create secret
+aws secretsmanager create-secret \
+  --name cardinal/prod/config \
+  --secret-string '{"CARDINAL_PRODUCT_KEY":"your-key","DATABASE_URL":"your-db-url"}'
+
+# Update task definition to use secrets instead of environment variables
+```
+
+## Cost Optimization
+
+- Use Spot instances for non-production workloads
+- Set up auto-scaling based on CPU/memory usage
+- Use scheduled scaling if you have predictable traffic patterns
+- Consider using AWS Fargate Spot for cost savings
+
+## Monitoring Setup
+
+```bash
+# Enable container insights
+aws ecs put-account-setting \
+  --name containerInsights \
+  --value enabled
+```
+
+This gives you a production-ready Cardinal deployment in a VPC with proper security, networking, and scalability!

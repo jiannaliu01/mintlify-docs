@@ -1,0 +1,418 @@
+---
+title: "Azure"
+description: "How to deploy Cardinal using Azure Container Instances or Azure Container Apps for cost-effective, scalable container hosting."
+---
+
+## Prerequisites
+
+- **Docker** installed and running on your machine - [Docker documentation](https://docs.docker.com/get-docker/)
+- **Azure CLI** installed and configured - [Azure CLI setup guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Access to Cardinal's private Azure Container Registry (enterprise clients only)
+
+---
+
+## Azure OpenAI Model Access Requirements
+
+**For Azure Government Cloud Deployments:**
+
+Cardinal requires access to a fine-tuned model hosted on Azure OpenAI Service. Due to Azure Government compliance and data sovereignty requirements, cross-tenant access from commercial Azure subscriptions is typically not permitted.
+
+**Required Setup:**
+- We will need access to deploy our fine-tuned model directly in your Azure Government subscription, OR
+- You will need to provide us with a dedicated Azure OpenAI-enabled subscription within your organization's compliance boundary
+
+**Why This Matters:**
+- FedRAMP and other compliance frameworks require all data processing to occur within authorized boundaries
+- Cross-tenant dependencies from commercial Azure to Azure Government violate most security authorization boundaries
+- Model inference must happen within your controlled environment
+
+**Implementation Options:**
+1. **Preferred:** Grant us temporary access to deploy our model in your Azure Government OpenAI service
+2. **Alternative:** We can provide model artifacts and training procedures for you to recreate the model in your environment
+3. **Enterprise:** We can establish a dedicated Azure Government presence within your compliance boundary
+
+**Additional RBAC Requirements:**
+The Cardinal container instances will need additional permissions for Azure OpenAI access:
+```json
+{
+  "properties": {
+    "roleName": "Cardinal OpenAI Access",
+    "description": "Custom role for Cardinal to access Azure OpenAI",
+    "assignableScopes": [
+      "/subscriptions/YOUR_SUBSCRIPTION_ID"
+    ],
+    "permissions": [
+      {
+        "actions": [
+          "Microsoft.CognitiveServices/accounts/OpenAI/deployments/completions/action",
+          "Microsoft.CognitiveServices/accounts/OpenAI/deployments/chat/completions/action"
+        ],
+        "notActions": [],
+        "dataActions": [],
+        "notDataActions": []
+      }
+    ]
+  }
+}
+```
+
+Contact your Cardinal representative to coordinate Azure OpenAI model deployment before beginning the container setup.
+
+---
+
+## Infrastructure Setup
+
+### Azure Infrastructure Prerequisites
+
+Set up the basic Azure infrastructure:
+
+```bash
+# Login to Azure
+az login
+
+# Create resource group
+az group create --name cardinal-rg --location eastus2
+
+# Create Azure Container Registry (if using private registry)
+az acr create --resource-group cardinal-rg --name cardinalacr --sku Basic
+
+# Create Log Analytics workspace for monitoring
+az monitor log-analytics workspace create \
+  --resource-group cardinal-rg \
+  --workspace-name cardinal-logs \
+  --location eastus2
+```
+
+### Cardinal-Specific Authentication
+
+Configure Azure CLI and authenticate to Cardinal's Container Registry:
+
+```bash
+# Set subscription (if needed)
+az account set --subscription "your-subscription-id"
+
+# Authenticate to Cardinal ACR registry
+az acr login --name cardinalacr.azurecr.io
+```
+
+---
+
+## Option 1: Azure Container Instances (ACI) - Simple Deployment
+
+### Create Container Instance
+
+Create a container instance with Cardinal-specific configuration:
+
+```bash
+# Create container instance
+az container create \
+  --resource-group cardinal-rg \
+  --name cardinal-instance \
+  --image cardinalacr.azurecr.io/cardinalai:latest \
+  --cpu 6 \
+  --memory 28 \
+  --registry-login-server cardinalacr.azurecr.io \
+  --registry-username your_acr_username \
+  --registry-password your_acr_password \
+  --dns-name-label cardinal-app \
+  --ports 8080 \
+  --environment-variables \
+    CARDINAL_ACCESS_KEY=your_cardinal_access_key \
+    CARDINAL_SECRET=your_cardinal_secret \
+  --log-analytics-workspace cardinal-logs \
+  --log-analytics-workspace-key your_workspace_key
+```
+
+### Container Instance YAML Configuration
+
+Alternatively, use a YAML file `cardinal-aci.yaml`:
+
+```yaml
+apiVersion: 2021-07-01
+location: eastus2
+name: cardinal-instance
+properties:
+  containers:
+  - name: cardinal
+    properties:
+      image: cardinalacr.azurecr.io/cardinalai:latest
+      resources:
+        requests:
+          cpu: 6.0
+          memoryInGb: 28.0
+      ports:
+      - protocol: tcp
+        port: 8080
+      environmentVariables:
+      - name: CARDINAL_ACCESS_KEY
+        value: your_cardinal_access_key
+      - name: CARDINAL_SECRET
+        secureValue: your_cardinal_secret
+  osType: Linux
+  restartPolicy: Always
+  ipAddress:
+    type: Public
+    ports:
+    - protocol: tcp
+      port: 8080
+    dnsNameLabel: cardinal-app
+  imageRegistryCredentials:
+  - server: cardinalacr.azurecr.io
+    username: your_acr_username
+    password: your_acr_password
+  diagnostics:
+    logAnalytics:
+      workspaceId: your_workspace_id
+      workspaceKey: your_workspace_key
+tags: null
+type: Microsoft.ContainerInstance/containerGroups
+```
+
+Deploy using YAML:
+
+```bash
+az container create --resource-group cardinal-rg --file cardinal-aci.yaml
+```
+
+---
+
+## Option 2: Azure Container Apps - Production Deployment
+
+### Setup Container Apps Environment
+
+```bash
+# Install Container Apps extension
+az extension add --name containerapp --upgrade
+
+# Register providers
+az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+
+# Create Container Apps environment
+az containerapp env create \
+  --name cardinal-env \
+  --resource-group cardinal-rg \
+  --location eastus2 \
+  --logs-workspace-id $(az monitor log-analytics workspace show --resource-group cardinal-rg --workspace-name cardinal-logs --query customerId -o tsv) \
+  --logs-workspace-key $(az monitor log-analytics workspace get-shared-keys --resource-group cardinal-rg --workspace-name cardinal-logs --query primarySharedKey -o tsv)
+```
+
+### Create Container App
+
+```bash
+# Create container app
+az containerapp create \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --environment cardinal-env \
+  --image cardinalacr.azurecr.io/cardinalai:latest \
+  --registry-server cardinalacr.azurecr.io \
+  --registry-username your_acr_username \
+  --registry-password your_acr_password \
+  --target-port 8080 \
+  --ingress external \
+  --cpu 6.0 \
+  --memory 28.0Gi \
+  --min-replicas 1 \
+  --max-replicas 10 \
+  --env-vars \
+    CARDINAL_ACCESS_KEY=your_cardinal_access_key \
+    CARDINAL_SECRET=secretref:cardinal-secret
+```
+
+### Add Secrets for Container Apps
+
+```bash
+# Add secret for Cardinal credentials
+az containerapp secret set \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --secrets cardinal-secret=your_cardinal_secret_value
+```
+
+---
+
+## Deploy and Manage Cardinal
+
+### Container Instance Management
+
+```bash
+# Check deployment status
+az container show --resource-group cardinal-rg --name cardinal-instance
+
+# View logs
+az container logs --resource-group cardinal-rg --name cardinal-instance
+
+# Restart container
+az container restart --resource-group cardinal-rg --name cardinal-instance
+
+# Delete container
+az container delete --resource-group cardinal-rg --name cardinal-instance
+```
+
+### Container Apps Management
+
+```bash
+# Check app status
+az containerapp show --name cardinal-app --resource-group cardinal-rg
+
+# View logs
+az containerapp logs show --name cardinal-app --resource-group cardinal-rg
+
+# Update container image
+az containerapp update \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --image cardinalacr.azurecr.io/cardinalai:latest
+
+# Scale manually
+az containerapp update \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --min-replicas 2 \
+  --max-replicas 15
+```
+
+---
+
+## Compute Requirements
+
+Cardinal requires specific compute resources for optimal performance:
+
+**Container Instance Requirements:**
+- **CPU:** 6.0 cores minimum  
+- **Memory:** 28 GB RAM minimum
+- **Storage:** Uses container's ephemeral storage
+- **Network:** Public IP with port 8080 exposed
+
+**Azure VM Equivalent:** Standard_D8s_v3 (8 vCPUs, 32 GB RAM)
+- Provides similar compute capacity as AWS m5.2xlarge
+- Best price-performance ratio for Cardinal's workload
+
+**Alternative Configurations:**
+- **Standard_F8s_v2:** 8 vCPU, 16 GB (compute-optimized, lower memory)
+- **Standard_D16s_v3:** 16 vCPU, 64 GB (for scaling beyond single instance)
+- **Standard_E8s_v3:** 8 vCPU, 64 GB (memory-optimized if needed)
+
+---
+
+## Auto Scaling (Container Apps Only)
+
+Container Apps provides built-in auto scaling based on HTTP traffic and custom metrics:
+
+### HTTP-based Auto Scaling
+```bash
+# Update scaling rules
+az containerapp update \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --min-replicas 1 \
+  --max-replicas 10 \
+  --scale-rule-name http-requests \
+  --scale-rule-type http \
+  --scale-rule-http-concurrency 50
+```
+
+### CPU-based Auto Scaling
+```bash
+# Add CPU scaling rule
+az containerapp update \
+  --name cardinal-app \
+  --resource-group cardinal-rg \
+  --scale-rule-name cpu-usage \
+  --scale-rule-type cpu \
+  --scale-rule-metadata "type=Utilization" "value=70"
+```
+
+---
+
+## Load Balancer Integration
+
+Container Apps includes built-in load balancing and ingress. For Container Instances, you can add Azure Load Balancer or Application Gateway:
+
+### Application Gateway (for multiple ACI instances)
+```bash
+# Create Application Gateway
+az network application-gateway create \
+  --name cardinal-gateway \
+  --resource-group cardinal-rg \
+  --location eastus2 \
+  --sku Standard_v2 \
+  --public-ip-address cardinal-gateway-ip \
+  --vnet-name cardinal-vnet \
+  --subnet cardinal-gateway-subnet
+```
+
+---
+
+## Cost Analysis
+
+**Monthly cost estimates (East US 2):**
+
+### Azure Container Instances
+- **6 vCPU, 28 GB RAM:** ~$380/month (24/7)
+- **Network:** ~$5/month (public IP)
+- **Total:** ~$385/month
+
+### Azure Container Apps
+- **6 vCPU, 28 GB RAM:** ~$350/month (24/7, with consumption billing benefits)
+- **Network:** Included in pricing
+- **Total:** ~$350/month
+
+### Comparison with VM (Standard_D8s_v3)
+- **Instance cost:** ~$280/month (with reserved instance)
+- **Managed disk:** ~$15/month (128 GB Premium SSD)
+- **Total:** ~$295/month (requires more management overhead)
+
+---
+
+## Monitoring and Troubleshooting
+
+### Container Instances Monitoring
+```bash
+# View container status
+az container show --resource-group cardinal-rg --name cardinal-instance --query "containers[0].instanceView.currentState"
+
+# Get container logs
+az container logs --resource-group cardinal-rg --name cardinal-instance --tail 100
+
+# View container metrics
+az monitor metrics list --resource /subscriptions/YOUR_SUB_ID/resourceGroups/cardinal-rg/providers/Microsoft.ContainerInstance/containerGroups/cardinal-instance
+```
+
+### Container Apps Monitoring
+```bash
+# View app status and metrics
+az containerapp show --name cardinal-app --resource-group cardinal-rg --query "properties.provisioningState"
+
+# Stream logs
+az containerapp logs show --name cardinal-app --resource-group cardinal-rg --follow
+
+# View scaling events
+az containerapp revision list --name cardinal-app --resource-group cardinal-rg
+```
+
+### Azure Monitor Integration
+Access comprehensive metrics through Azure Portal:
+- Navigate to Azure Monitor → Metrics
+- Select your container resource
+- View CPU, memory, network, and custom Cardinal metrics
+- Set up alerts for critical thresholds
+
+### Application Insights (Optional)
+For detailed application monitoring, integrate with Application Insights:
+
+```bash
+# Create Application Insights resource
+az monitor app-insights component create \
+  --app cardinal-insights \
+  --location eastus2 \
+  --resource-group cardinal-rg \
+  --kind web
+
+# Get instrumentation key for Cardinal configuration
+az monitor app-insights component show \
+  --app cardinal-insights \
+  --resource-group cardinal-rg \
+  --query "instrumentationKey"
+```

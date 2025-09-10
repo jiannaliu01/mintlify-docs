@@ -5,8 +5,8 @@ description: "VPC Deploy options for Cardinal Enterprise customers."
 
 Cardinal Enterprise gives you two ways to run in your own cloud environment:
 
-- **Cardinal Dedicated** – fully managed, single-tenant deployment in a VPC we host for you.  
-- **Private Cloud Deployment** – self-managed deployment in your own cloud account or data center.
+- **Cardinal Dedicated**  
+- **Private Cloud Deployment** 
 
 ---
 
@@ -15,31 +15,24 @@ Cardinal Enterprise gives you two ways to run in your own cloud environment:
 Cardinal Dedicated is a **single-tenant, fully managed** deployment:
 
 - Hosted and operated by Cardinal  
-- Isolated in a separate AWS/Azure account + VPC  
-- Meets enterprise-grade compliance and audit standards  
-- Continuous rolling upgrades (one version behind latest Cardinal)  
-- IAM roles for your admins; Cardinal manages underlying infra  
+- Deployed on GCP in a cloud region of your choice
+
+Cardinal Dedicated removes the overhead of platform management while allowing for fully isolated deployments. Each Cardinal Dedicated instance is highly available with disaster recovery and deployed into the cloud region of your choice.
+
+The Cardinal team fully manages the maintenance and operations of each isolated instance, so customers can access our latest product improvements while meeting the most complex compliance standards. Administers from your organization are granted IAM roles to monitor the application while Cardinal manages the underlying infrastructure.
 
 ---
 
 ## Private Cloud Deployment
 
-Private Cloud lets you **self-host Cardinal** within your infrastructure:
-
-- Run Cardinal packages (Server, App, Postgres) inside your own cluster or VMs  
-- Bring your own cloud provider, region, or on-prem environment  
-- You manage upgrades, scaling, and monitoring  
-- Cardinal provides container images and setup docs  
-
-### Prerequisites
-- Docker & Docker Compose (or Kubernetes)  
-- Private container registry (ECR/ACR/GCR or equivalent)  
-- Credentials for registry access  
-- Database user with permissions  
+Private Cloud lets you **self-host Cardinal** within your cloud infrastructure.
 
 <CardGroup cols={2}>
-  <Card title="Deployment Guide" icon="book" href="/enterprise/vpc-deploy/get-started">
-    Step-by-step instructions for Docker/K8s.
+  <Card title="AWS" icon="aws" href="/enterprise/vpc-deploy/aws">
+    Installation instructions
+  </Card>
+    <Card title="Azure" icon="microsoft" href="/enterprise/vpc-deploy/azure">
+    Installation instructions
   </Card>
 </CardGroup>
 
