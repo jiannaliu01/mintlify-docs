@@ -1,11 +1,11 @@
 ---
 title: "Latency"
-description: "Understand Cardinal’s latency and performance characteristics."
+description: "Understand Cardinal's latency and performance characteristics."
 ---
 
 ### Latency Overview
 
-Cardinal is optimized for speed and scale. Each page typically takes **around 30 seconds** to process, regardless of size or complexity. Because all pages are processed **in parallel with no rate limits**, total latency depends primarily on the slowest page rather than the total number of pages.
+Cardinal is optimized for speed and scale. Each page typically takes **around 15 seconds** to process with our base model, regardless of size or complexity. Because all pages are processed **in parallel with no rate limits**, total latency depends primarily on the slowest page rather than the total number of pages.
 
 ---
 
@@ -13,18 +13,22 @@ Cardinal is optimized for speed and scale. Each page typically takes **around 30
 
 | Document Size | Expected Latency |
 |---------------|------------------|
-| **1 page**    | ~30 sec          |
-| **10 pages**  | ~30 sec          |
-| **100 pages** | ~30 sec          |
-| **1000 pages**| ~30 sec          |
+| **1 page**    | ~15 sec          |
+| **10 pages**  | ~15 sec          |
+| **100 pages** | ~15 sec          |
+| **1000 pages**| ~15 sec          |
 
 ---
 
 ### Notes
 
 - Pages run **fully in parallel**, so overall latency does **not** scale linearly with page count.  
-- Complex cases (dense tables, handwriting, annotations, advanced passes) may take closer to **40–50 seconds per page**, but still parallelize.  
-- **Post-processing and additional key features** (e.g., bounding boxes, enrichment, or schema alignment) typically add **~15–30 seconds** on top of base latency.  
+- **Base model processing** takes approximately **15 seconds per page** for standard OCR.
+- **Additional features** can increase processing time:
+  - **Barcode detection** may add several seconds per page
+  - **Post-processing and enrichment** typically add **~10–20 seconds** on top of base latency
+  - **Advanced passes** (dense tables, handwriting, annotations) may add **~10–25 seconds** per page
+  - **Schema alignment and bounding boxes** can add additional processing time
 - There are **no rate limits** — you can process as many pages as you want simultaneously.  
 - Skew correction and other advanced passes may add a few seconds of processing time per page.  
 

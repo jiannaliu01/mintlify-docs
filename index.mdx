@@ -7,29 +7,71 @@ Cardinal transforms messy PDFs, images, and scanned files into structured, relia
 
 ---
 
-## What's in these docs
+## File Types & Input Formats
 
-### Getting Started
-<CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Upload your first PDF or image and extract structured JSON in minutes
+Cardinal accepts a wide range of document formats for processing:
+
+<CardGroup cols={3}>
+  <Card title="PDFs" icon="file-pdf" href="/file-types">
+    Native PDFs, scanned documents, multi-page files, and password-protected PDFs
   </Card>
-  <Card title="File Types & Basics" icon="file" href="/file-types">
-    Accepted formats, authentication, response structures, and core concepts
+  <Card title="Images" icon="image" href="/file-types">
+    PNG, JPEG, TIFF, WebP, and other common image formats
+  </Card>
+  <Card title="Scanned Documents" icon="scanner" href="/file-types">
+    High-resolution scans, photos of documents, and legacy paper files
   </Card>
 </CardGroup>
 
-### Output Formats
-<CardGroup cols={2}>
-  <Card title="JSON Extraction" icon="brackets-curly" href="/json">
-    Schema-first extraction, arrays, long PDFs, null fallbacks, and data mapping
-  </Card>
-  <Card title="Markdown Output" icon="markdown" href="/markdown">
+## Output Formats
+
+Transform your documents into structured data with multiple output options:
+
+<CardGroup cols={3}>
+  <Card title="Markdown" icon="markdown" href="/markdown">
     High-fidelity conversion with tables, annotations, bounding boxes, and image embeds
   </Card>
+  <Card title="JSON" icon="brackets-curly" href="/json">
+    Schema-first extraction, arrays, long PDFs, null fallbacks, and data mapping
+  </Card>
+  <Card title="Bounding Boxes" icon="vector-square" href="/bounding-boxes">
+    Precise coordinate data for text, tables, and visual elements
+  </Card>
 </CardGroup>
 
-### Development & Integration  
+## What We Detect & Key Features
+
+Cardinal's intelligent processing capabilities include:
+
+<CardGroup cols={2}>
+  <Card title="Bounding Boxes" icon="vector-square" href="/bounding-boxes">
+    Precise coordinate mapping for all detected text and visual elements
+  </Card>
+  <Card title="Image Metadata" icon="camera" href="/image-metadata">
+    Extract EXIF data, dimensions, and technical specifications from embedded images
+  </Card>
+  <Card title="Barcodes & QR Codes" icon="qrcode" href="/barcode">
+    Automatic detection and decoding of 1D barcodes and QR codes
+  </Card>
+  <Card title="Signatures" icon="signature" href="/signature">
+    Identify and locate handwritten signatures and initials
+  </Card>
+  <Card title="Dense Tables" icon="table" href="/dense-tables">
+    Complex spanning tables, multi-page tables, and structured data extraction
+  </Card>
+  <Card title="Redlines & Annotations" icon="pen-to-square" href="/redlines">
+    Track document changes, markup, and editorial annotations
+  </Card>
+  <Card title="Document Classification" icon="tags" href="/classify-split">
+    Intelligent document splitting and type classification
+  </Card>
+  <Card title="Advanced Features" icon="sparkles" href="/coming-soon">
+    Handwriting recognition, form fields, and enhanced table processing
+  </Card>
+</CardGroup>
+
+## Development & Integration  
+
 <CardGroup cols={3}>
   <Card title="API Reference" icon="code" href="/api-reference/introduction">
     Complete API documentation, endpoints, parameters, and response formats
@@ -42,25 +84,24 @@ Cardinal transforms messy PDFs, images, and scanned files into structured, relia
   </Card>
 </CardGroup>
 
-### Key Features
-<CardGroup cols={2}>
-  <Card title="Rich Annotations" icon="pen-to-square" href="/annotations">
-    Checkmarks, barcodes, signatures, form fields, and metadata extraction
-  </Card>
-  <Card title="Table Processing" icon="table" href="/tables">
-    Complex spanning tables, multi-page tables, and structured data extraction
-  </Card>
-</CardGroup>
+## Security & Enterprise
 
-### Resources & Support
-<CardGroup cols={3}>
-  <Card title="Service Status" icon="chart-line" href="/stability">
-    Real-time status and performance monitoring
-  </Card>
-  <Card title="Email Support" icon="envelope" href="mailto:team@trycardinal.ai" external>
-    Direct support for setup, billing, and technical questions
-  </Card>
-</CardGroup>
+Cardinal provides enterprise-grade security and compliance features:
+
+**Data Protection**
+- End-to-end encryption for all document uploads and API communications
+- Zero data retention policy - your documents are processed and immediately deleted
+- SOC 2 Type II compliance with regular third-party security audits
+
+**Access Control**
+- API key authentication with granular permissions and rate limiting
+- Role-based access controls for team management and document sharing
+- Audit logs for all processing activities and API access
+
+**Infrastructure**
+- AWS-hosted infrastructure with 99.9% uptime SLA
+- Auto-scaling processing clusters for consistent performance
+- Global CDN for fast document uploads from anywhere
 
 ---
 
@@ -70,7 +111,7 @@ Cardinal transforms messy PDFs, images, and scanned files into structured, relia
 - **Schema-first JSON Extraction** – Provide your schema, and Cardinal maps data into it automatically
 - **Rich Tables & Annotations** – Accurately capture spanning tables, checkmarks, barcodes, signatures, and image metadata
 - **Flexible Output Modes** – Get high fidelity Markdown with bounding boxes for RAG and human review
-
+- **Enterprise Security** – Zero retention, SOC 2 compliance, and enterprise-grade infrastructure
 
 <Note>
 Ready to get started? Visit [trycardinal.ai](http://trycardinal.ai) to try Cardinal now!

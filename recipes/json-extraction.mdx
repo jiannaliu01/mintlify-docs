@@ -1,0 +1,91 @@
+---
+title: "JSON Extraction"
+description: "Use JSON extraction to communicate with documents and get precise answers."
+---
+
+# JSON Extraction
+
+Most teams think of JSON purely as a way to **extract** fields from documents. That’s powerful—but it’s only the start. With Cardinal, JSON is also how you **query** documents for judgment calls (quality checks, routing, classification) and drive **automations** downstream.
+
+Below are three common patterns, each with a short schema you can adopt.
+
+---
+
+## 1) Extract Data (the classic use case)
+
+Pull precise fields from invoices, contracts, forms, and more. Use strict keys so outputs are machine-reliable.
+
+```json
+{
+  "invoice_data": {
+    "invoice_number": "string",
+    "date": "YYYY-MM-DD",
+    "vendor_name": "string",
+    "total_amount": "number",
+    "line_items": [
+      {
+        "description": "string",
+        "quantity": "number",
+        "unit_price": "number",
+        "total": "number"
+      }
+    ]
+  }
+}
+```
+
+**When to use:** analytics, exports to your ERP/CRM, reconciliation, payables workflows.
+
+---
+
+## 2) Classify Documents (route and prioritize)
+
+JSON isn’t just values—it’s **decisions**. Ask the model to identify the document type, urgency, and where it should go next.
+
+```json
+{
+  "document_analysis": {
+    "document_type": "string - invoice, contract, receipt, etc.",
+    "urgency_level": "string - low, medium, high",
+    "suggested_department": "string - accounting, legal, HR, etc.",
+    "confidence_score": "number (0-1)"
+  }
+}
+```
+
+**When to use:** inbox triage, queue assignment, SLAs, “who should handle this?” automation.
+
+---
+
+## 3) Query Document Quality (gate before downstream)
+
+Before you extract, ask: **is the document even usable?** Encode quality checks as JSON so you can reprocess or flag early.
+
+**Use cases**
+- Quality control for scanned documents  
+- Determine if images need enhancement  
+- Flag documents requiring manual review  
+- Automate accept/reject workflows
+
+```json
+{
+  "document_quality": {
+    "is_blurry": "boolean",
+    "is_readable": "boolean",
+    "image_quality_score": "number (1-10)",
+    "recommendation": "string - should this document be reprocessed?"
+  }
+}
+```
+
+**When to use:** scan pipelines, OCR fallback, human-in-the-loop gating.
+
+---
+
+## Takeaways
+
+- **Extract** to structure data.  
+- **Classify** to route and prioritize.  
+- **Query** to assess quality and control flow.  
+
+Design your JSON schemas around the decisions you need to automate—not just the fields you need to capture. This turns your document pipeline from “parse and hope” into a predictable, auditable system.

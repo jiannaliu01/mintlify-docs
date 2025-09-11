@@ -8,6 +8,10 @@
     "dark": "#990008"
   },
   "favicon": "/dark.ico",
+  "recipes": [
+    "recipes/RAG-implementation",
+    "recipes/JSON-extraction"
+  ],
   "navigation": {
     "tabs": [
       {
@@ -61,6 +65,13 @@
             "group": "Eval",
             "pages": [
               "eval"
+            ]
+          },
+          {
+            "group": "Recipes",
+            "pages": [
+              "recipes/rag-implementation",
+              "recipes/json-extraction"
             ]
           },
           {

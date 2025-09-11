@@ -1,0 +1,288 @@
+---
+title: "RAG Implementation"
+description: "Extract data in intelligent chunks optimized for Retreival-augmented generation and semantic search. Great for Knowledge bases, chatbots, etc."
+---
+
+## RAG Implementation with Cardinal
+
+Retrieval-Augmented Generation (RAG) has become essential for building intelligent applications that need to answer questions about your specific documents. Whether you're building a chatbot knowledge base for customer support, creating an internal document search system for legal teams, developing a research assistant for healthcare professionals, or setting up automated compliance reporting for financial services, Cardinal provides the foundation for accurate document processing.
+
+---
+
+## Common RAG Use Cases Across Industries
+
+### Customer Support & Knowledge Management
+- Chatbots that answer product questions from manuals and documentation
+- FAQ systems that pull from support tickets and knowledge articles
+- Automated response systems for common customer inquiries
+
+### Legal & Compliance
+- Contract analysis and clause extraction systems
+- Regulatory document search and compliance checking
+- Case law research and legal precedent matching
+
+### Healthcare & Research
+- Medical literature search and summarization
+- Clinical trial document processing
+- Patient record analysis and insights
+
+### Financial Services
+- Investment research document analysis
+- Regulatory filing processing and monitoring
+- Risk assessment report generation
+
+### Enterprise & Internal Tools
+- Employee handbook and policy Q&A systems
+- Technical documentation search
+- Meeting notes and decision tracking
+
+---
+
+## Our RAG Implementation Process
+
+At Cardinal, we've implemented RAG systems extensively across various industries and use cases. Through this experience, we've developed a proven process that consistently delivers high-quality results. Our approach focuses on three key steps: intelligent document chunking, accurate embeddings generation, and efficient vector storage.
+
+### Step 1: Document Processing with Cardinal
+
+The foundation of any effective RAG system is proper document chunking. We use our proprietary chunking system, to intelligently break down documents into accurate bounding boxes while preserving semantic meaning and context.
+
+#### Cardinal Bounding Box Generation
+
+```python
+import requests
+
+# Process document with Cardinal chunking
+response = requests.post(
+    "https://api.trycardinal.ai/chunk",
+    headers={
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+    },
+    json={
+        "file_url": "https://example.com/document.pdf",
+        "chunk_size": 1000,
+        "overlap": 200,
+        "preserve_structure": True
+    }
+)
+
+chunks = response.json()["chunks"]
+# Each chunk contains:
+# - content: markdown-formatted text
+# - metadata: page numbers, section headers, etc.
+# - chunk_id: unique identifier for tracking
+```
+
+**Cardinal's chunking system automatically:**
+- Preserves document structure and formatting as markdown  
+- Creates semantically coherent chunks that don't break mid-sentence  
+- Maintains context through intelligent overlap between chunks  
+- Extracts metadata like page numbers, headers, and document sections  
+
+---
+
+### Step 2: Generate Embeddings
+
+For embeddings generation, we recommend Voyage AI over other alternatives like OpenAI's embedding models. Through extensive testing, we've found Voyage AI consistently produces more accurate embeddings for retrieval tasks.
+
+#### Using Voyage AI (Recommended)
+
+```python
+import voyageai
+
+# Initialize Voyage AI client
+client = voyageai.Client(api_key="YOUR_VOYAGE_API_KEY")
+
+# Generate embeddings for chunks
+embeddings = []
+for chunk in chunks:
+    embedding = client.embed(
+        texts=[chunk["content"]],
+        model="voyage-large-2"
+    ).embeddings[0]
+    
+    embeddings.append({
+        "chunk_id": chunk["chunk_id"],
+        "content": chunk["content"],
+        "embedding": embedding,
+        "metadata": chunk["metadata"]
+    })
+```
+
+#### Alternative: OpenAI Embeddings
+
+```python
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
+
+embeddings = []
+for chunk in chunks:
+    response = client.embeddings.create(
+        input=chunk["content"],
+        model="text-embedding-3-large"
+    )
+    
+    embeddings.append({
+        "chunk_id": chunk["chunk_id"],
+        "content": chunk["content"],
+        "embedding": response.data[0].embedding,
+        "metadata": chunk["metadata"]
+    })
+```
+
+**Why we recommend Voyage AI:**
+- Superior accuracy for document retrieval tasks  
+- Better handling of domain-specific terminology  
+- More consistent performance across different document types  
+- Optimized specifically for RAG applications  
+
+---
+
+### Step 3: Store in Pinecone
+
+Pinecone is our recommended vector database for RAG implementations. It provides excellent performance, scalability, and ease of use for similarity search operations.
+
+#### Pinecone Setup and Indexing
+
+```python
+import pinecone
+from pinecone import Pinecone
+# from pinecone import ServerlessSpec  # Uncomment if needed depending on SDK version
+
+# Initialize Pinecone
+pc = Pinecone(api_key="YOUR_PINECONE_API_KEY")
+
+# Create index (one-time setup)
+index_name = "cardinal-rag-index"
+pc.create_index(
+    name=index_name,
+    dimension=1024,  # Voyage AI embedding dimension
+    metric="cosine",
+    spec=ServerlessSpec(
+        cloud="aws",
+        region="us-east-1"
+    )
+)
+
+# Connect to index
+index = pc.Index(index_name)
+
+# Upsert embeddings to Pinecone
+vectors_to_upsert = []
+for item in embeddings:
+    vectors_to_upsert.append({
+        "id": item["chunk_id"],
+        "values": item["embedding"],
+        "metadata": {
+            "content": item["content"],
+            "page": item["metadata"].get("page"),
+            "section": item["metadata"].get("section"),
+            "document_id": item["metadata"].get("document_id")
+        }
+    })
+
+# Batch upsert for efficiency
+index.upsert(vectors=vectors_to_upsert, batch_size=100)
+```
+
+---
+
+### Step 4: Query and Retrieve
+
+With your documents processed and stored, you can now perform semantic search to retrieve relevant context for your RAG queries.
+
+#### Semantic Search
+
+```python
+def search_documents(query, top_k=5):
+    # Generate embedding for the query
+    query_embedding = client.embed(
+        texts=[query],
+        model="voyage-large-2"
+    ).embeddings[0]
+    
+    # Search Pinecone for similar chunks
+    results = index.query(
+        vector=query_embedding,
+        top_k=top_k,
+        include_metadata=True
+    )
+    
+    # Extract relevant context
+    context_chunks = []
+    for match in results.matches:
+        context_chunks.append({
+            "content": match.metadata["content"],
+            "score": match.score,
+            "page": match.metadata.get("page"),
+            "section": match.metadata.get("section")
+        })
+    
+    return context_chunks
+
+# Example usage
+relevant_chunks = search_documents("What are the compliance requirements?")
+```
+
+#### Complete RAG Query
+
+```python
+def rag_query(question, context_chunks):
+    # Combine retrieved chunks into context
+    context = "\n\n".join([chunk["content"] for chunk in context_chunks])
+    
+    # Create prompt with context
+    prompt = f"""
+    Based on the following context, answer the question accurately:
+    
+    Context:
+    {context}
+    
+    Question: {question}
+    
+    Answer:
+    """
+    
+    # Generate response using your preferred LLM
+    response = openai_client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1
+    )
+    
+    return response.choices[0].message.content
+
+# Complete RAG pipeline
+question = "What are the key compliance requirements for financial reporting?"
+context = search_documents(question)
+answer = rag_query(question, context)
+```
+
+---
+
+## Best Practices
+
+### Document Processing
+- Use appropriate chunk sizes (800–1200 tokens typically work well)
+- Include overlap between chunks to maintain context
+- Preserve document structure through markdown formatting
+
+### Embedding Strategy
+- Batch process embeddings for efficiency
+- Store embeddings with comprehensive metadata
+- Consider document-specific embedding strategies for specialized domains
+
+### Vector Storage
+- Use consistent naming conventions for index management
+- Implement proper error handling and retry logic
+- Monitor index performance and optimize as needed
+
+### Query Optimization
+- Experiment with different `top_k` values for retrieval
+- Implement relevance filtering based on similarity scores
+- Consider hybrid search approaches combining semantic and keyword matching
+
+---
+
+This proven RAG implementation process has been battle-tested across numerous production deployments and consistently delivers high-quality results for document-based question answering systems.
