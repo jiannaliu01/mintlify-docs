@@ -31,3 +31,41 @@ Use **Fast JSON** when you need a quick, lightweight response with **lower cost 
 {
   "is_blurry": true
 }
+```
+
+### 2. Standard JSON — /process 
+
+**Standard JSON** runs our full parsing pipeline and aligns output to your schema.
+
+- Handles complex layouts (tables, annotations, etc.).
+- Slower, but more reliable for production workloads.
+- Input: PDF or image via upload or fileUrl
+- Provide schema to receive schema_result
+
+```json
+{
+  "invoice_number": "INV-00392",
+  "due_date": "2025-09-01",
+  "total_amount": 1042.50,
+  "line_items": [
+    {
+      "description": "Consulting",
+      "amount": 900.00
+    },
+    {
+      "description": "Tax",
+      "amount": 142.50
+    }
+  ]
+}
+``` 
+
+### Long Document Caveats
+Right now, **longer files may cause JSON extraction to break or truncate** (especially with large arrays).
+We’re actively adding functionality to improve stability for multi-page and dense PDFs.
+
+> 💡 If you hit issues with large files, you can paginate your PDF and run extraction page by page.
+
+### Coming Soon
+
+- Automatic chunking for long PDFs

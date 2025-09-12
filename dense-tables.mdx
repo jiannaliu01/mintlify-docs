@@ -1,15 +1,15 @@
 ---
-title: "Dense Tables"
-description: "Extract and normalize dense, small-text tables with bounding boxes and structured content."
+title: "Dense PDFs"
+description: "Extract and normalize dense, small-text elements with bounding boxes and structured content."
 ---
 
-### Dense Tables
+## Overview
 
-Cardinal automatically detects and processes **dense tables** — cases where a document contains many small-text tables that are difficult to parse cleanly with normal extraction.  
+Cardinal detects and processes **dense PDFs** — cases where a document contains many small-text elements that are difficult to parse cleanly with normal extraction.  
 
-Results are always returned under the **`processed_tables`** field, without requiring additional flags.  
+When dense PDF detection is enabled, Cardinal splits the PDF into all of its individual table elements and extracts all the remaining text outside of those tables. Results are returned as structured elements under the `processed_tables` field along with the extracted content from non-table areas.
 
-For each table, you’ll receive:  
+For each table element, you'll receive:  
 
 - **`table_index`** – index of the table on the page.  
 - **`page_number`** – page where the table appears.  
@@ -23,7 +23,17 @@ For each table, you’ll receive:
 
 ---
 
-### Example Response (excerpt)
+## How to Enable
+
+To enable dense PDF detection, set `densePdfDetect: true` in your API request.
+
+- Default: `densePdfDetect = false`  
+- To **enable** dense PDF detection, set `densePdfDetect = true`.  
+- ⚠️ Enabling dense PDF detection will **add latency** to your requests, since additional detection passes are run.  
+
+---
+
+## Example Response (excerpt)
 
 ```json
 {
@@ -61,12 +71,12 @@ For each table, you’ll receive:
 }
 ```
 
-### Why Dense Tables?
+## Why Dense PDF Detection?
 
-Some engineering, financial, and architectural documents contain dozens of tiny tables (e.g., schedules, parts lists, cell plans).
-These tables often break normal Markdown extraction. With processed_tables, you get both:
-- Cropped table images for visual reference.
-- Normalized bounding boxes for precise placement.
-- Extracted HTML/Markdown text for structured parsing.
+Some engineering, financial, and architectural documents contain dozens of tiny tables (e.g., schedules, parts lists, cell plans) that break normal Markdown extraction. Dense PDF detection solves this by:
 
-<Note> Dense table extraction is always included automatically in the JSON output under `processed_tables`. No additional configuration is needed. </Note> 
+- **Isolating each table element**: Splits the PDF into individual table components with precise bounding boxes
+- **Extracting non-table content**: Captures all remaining text outside of the identified table areas
+- **Providing structured output**: Delivers both cropped table images for visual reference and extracted HTML/Markdown text for structured parsing
+
+<Note> Dense PDF extraction requires the `densePdfDetect` parameter to be enabled in your API request. Results appear in the JSON output under `processed_tables` along with extracted content from non-table areas. </Note>

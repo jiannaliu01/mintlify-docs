@@ -3,10 +3,10 @@ title: "Barcode Extraction"
 description: "Detect barcodes, extract images, values, and precise bounding boxes."
 ---
 
-### Barcode Extraction
+## Overview
 
 Cardinal automatically detects and extracts **barcodes** during processing.  
-For each detected barcode, you’ll receive:  
+For each detected barcode, you'll receive:  
 
 - **`image_url`** – a cropped image of the detected barcode.  
 - **`bounding_box`** – exact coordinates (`x_min`, `y_min`, `x_max`, `y_max`, plus `width` and `height`).  
@@ -19,17 +19,17 @@ For each detected barcode, you’ll receive:
 
 ---
 
-### Post-Processing
+## How to Enable
 
-Barcode detection requires **post-processing** to be enabled.  
+To enable barcode extraction, set `barcodeDetect: true` in your API request.
 
-- Default: `post_processing_on = false`  
-- To **enable** barcode extraction (and other advanced passes), set `post_processing_on = true`.  
-- ⚠️ Enabling post-processing will **add latency** to your requests, since additional detection passes are run.  
+- Default: `barcodeDetect = false`  
+- To **enable** barcode extraction, set `barcodeDetect = true`.  
+- ⚠️ Enabling barcode extraction will **add latency** to your requests, since additional detection passes are run.  
 
 ---
 
-### Example Response (excerpt)
+## Example Response
 
 ```json
 {
@@ -72,4 +72,4 @@ This enables use cases like:
 - Verifying barcode placement, type, and readability.
 - Automating workflows that rely on structured barcode values.
 
-<Note> Bounding box coordinates are provided in the same unit system as other page geometry. Use `page.width` and `page.height` from the response to normalize values if you need to scale to your viewer. </Note> 
+<Note> Bounding box coordinates are provided in the same unit system as other page geometry. Use `page.width` and `page.height` from the response to normalize values if you need to scale to your viewer. </Note>

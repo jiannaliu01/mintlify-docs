@@ -3,9 +3,9 @@
   "theme": "aspen",
   "name": "Cardinal",
   "colors": {
-    "primary": "#e7000b",
-    "light": "#ff5c66",
-    "dark": "#990008"
+    "primary": "#853e30",
+    "light": "#a86757",
+    "dark": "#5e2b21"
   },
   "favicon": "/dark.ico",
   "recipes": [
