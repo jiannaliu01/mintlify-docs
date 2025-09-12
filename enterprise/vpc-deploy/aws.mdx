@@ -11,6 +11,54 @@ description: "How to deploy Cardinal using Amazon ECS with EC2 instances for cos
 
 ---
 
+## Getting Started Locally
+
+Before deploying to ECS, you can quickly test Cardinal locally to ensure everything works:
+
+### Quick Local Setup
+
+```bash
+# Authenticate to Cardinal ECR registry
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 637423191408.dkr.ecr.us-east-2.amazonaws.com
+
+# Pull the latest Cardinal image
+docker pull 637423191408.dkr.ecr.us-east-2.amazonaws.com/cardinalai:latest
+
+# Run Cardinal locally
+docker run -d \
+  --name cardinal-local \
+  -p 8080:8080 \
+  -e CARDINAL_ACCESS_KEY=your_cardinal_access_key \
+  -e CARDINAL_SECRET=your_cardinal_secret \
+  637423191408.dkr.ecr.us-east-2.amazonaws.com/cardinalai:latest
+
+# Check if Cardinal is running
+curl http://localhost:8080/health
+
+# View logs
+docker logs cardinal-local
+```
+
+### Resource Requirements for Local Testing
+- **Minimum:** 8 GB RAM, 4 CPU cores
+- **Recommended:** 32 GB RAM, 8 CPU cores
+- **Storage:** ~2 GB for image + runtime data
+
+### Stopping Local Instance
+```bash
+# Stop and remove the container
+docker stop cardinal-local
+docker rm cardinal-local
+```
+
+**Why Start Locally?**
+- Verify your Cardinal credentials work
+- Test basic functionality before cloud deployment  
+- Understand resource requirements
+- Easy to adapt for other container orchestrators (Kubernetes, Fargate, etc.)
+
+---
+
 ## Bedrock Model Access Requirements
 
 **For AWS GovCloud Deployments:**
@@ -99,7 +147,7 @@ Create a task definition file `cardinal-task-def.json` with Cardinal-specific co
         {
           "containerPort": 8080,
           "hostPort": 8080,
-          "protocol": tcp"
+          "protocol": "tcp"
         }
       ],
       "logConfiguration": {
