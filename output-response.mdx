@@ -3,14 +3,14 @@ title: "Output Response"
 description: "Understand the structure of Cardinal’s API responses."
 ---
 
-## Overview
+### Overview
 
 Every Cardinal API call returns a **JSON response**.  
 The baseline structure is consistent, but additional fields may appear depending on which flags you enable (e.g., schema extraction, bounding boxes, image metadata).
 
 ---
 
-## Successful Response
+### Successful Response
 
 **HTTP 200 — application/json**
 
@@ -39,7 +39,7 @@ The baseline structure is consistent, but additional fields may appear depending
 }
 ```
 
-## Top-level fields
+### Top-level fields
 
 - success (boolean) — Whether the request completed successfully.
 - total_pages (integer) — Total number of pages processed.
@@ -48,7 +48,7 @@ The baseline structure is consistent, but additional fields may appear depending
 - pages (array) — Page-by-page extraction results (Markdown + metadata).
 - schema_result (object, optional) — Only present if you provided a schema. Contains structured extraction aligned to your schema.
 
-## Pagination
+### Pagination
 
 Large documents are **paginated into responses of ~100 pages each.**
 
@@ -56,7 +56,7 @@ Each response chunk contains the same schema (success, total_pages, pages, etc.)
 
 You can combine results client-side to reconstruct full documents.
 
-## Errors
+### Errors
 
 Non-200 responses indicate failure:
 - 400 — Bad request (invalid input or missing parameters)
@@ -66,12 +66,6 @@ Non-200 responses indicate failure:
 
 Error responses include a message describing the issue.
 
-## Cost Tracking
-
-Like Gemini and other providers, Cardinal will also support returning how many credits were consumed in the response.
-
----
-
-## API Reference
+### API Reference 
 
 <Card title="Process File API" href="api-reference/endpoint/process" icon="code" />

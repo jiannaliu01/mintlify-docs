@@ -1,9 +1,9 @@
 ---
-title: "Bounding Boxes"
+title: "Bounding Box"
 description: "Visualize extracted content with bounding boxes from Cardinal."
 ---
 
-## Overview
+### Overview
 
 Cardinal can return **bounding boxes** for text, citations, and other extracted elements.  
 
@@ -11,7 +11,7 @@ These appear as `bounding_boxes` objects inside each page entry of the `pages` a
 
 ---
 
-## How to Enable
+### How to Enable
 
 - Set **`showBoundingBox: true`** in your request.  
 - Bounding boxes are returned in the response under `pages[n].bounding_boxes`.  
@@ -21,7 +21,7 @@ These appear as `bounding_boxes` objects inside each page entry of the `pages` a
 
 ---
 
-## Example Response 
+### Example Response 
 
 ```json 
 {
@@ -62,7 +62,7 @@ These appear as `bounding_boxes` objects inside each page entry of the `pages` a
 
 ---
 
-## Use Cases
+### Use Cases
 
 Bounding boxes let you:
 
@@ -72,7 +72,7 @@ Bounding boxes let you:
 
 ---
 
-## Units
+### Units
 
 Bounding boxes are returned in **inches**, relative to the original PDF coordinate system.
 
@@ -90,7 +90,7 @@ This ensures bounding boxes scale correctly across different PDF sizes (e.g., 60
 
 ---
 
-## Conversion Example
+### Conversion Example
 
 Here’s how you can implement the recommended workflow on the frontend:
 
@@ -131,11 +131,9 @@ const convertExtractedDataToHighlightAreas = (): HighlightArea[] => {
 };
 ```
 
-## Coming Soon
-- **Variable chunking** — flexible bounding box grouping (not just paragraphs or words).
-
----
-
-## API Reference
+**API Reference**
 
 <Card title="Process File API" href="api-reference/endpoint/process" icon="code" />
+
+### Coming Soon
+- **Variable chunking** — flexible bounding box grouping (not just paragraphs or words).

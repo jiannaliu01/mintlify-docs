@@ -1,13 +1,13 @@
 ---
-title: "JSON Extraction"
-description: "Extract structured JSON from documents using Cardinal."
+title: "Schema Extract"
+description: "Extract structured data from documents using Cardinal with flexible schema formats."
 ---
 
-## Overview
+### Overview
 
-Cardinal's JSON mode lets you define the schema you want and receive structured data back. 
+Cardinal's schema extraction mode lets you define the structure you want and receive structured data back. 
 
-You provide the JSON shape, and Cardinal will attempt to align extracted values to it:
+You provide the schema format of your choice, and Cardinal will attempt to align extracted values to it:
 
 - Fields missing in the document will return **`null`**.  
 - Fields not included in your schema are **ignored**.  
@@ -15,54 +15,175 @@ You provide the JSON shape, and Cardinal will attempt to align extracted values 
 
 ---
 
-## Methods of JSON Extraction
+### Methods of Schema Extraction
 
-We currently offer **two methods of JSON extraction** depending on your use case:
+We currently offer **two methods of schema extraction** depending on your use case:
 
-### 1. Fast JSON — /extract (PDF only)
+#### 1. Fast Schema — /extract (PDF only)
 
-Use **Fast JSON** when you need a quick, lightweight response with **lower cost and latency**.
+Use **Fast Schema** when you need a quick, lightweight response with **lower cost and latency**.
 
 - Best for short docs or targeted checks (e.g., "is this image blurry?")
 - Prioritizes speed and cost-efficiency over deep parsing
 - Input: PDF via upload or fileUrl
-- You must provide a schema
+- You must provide a schema in your preferred format
+
+**Example Schema (JSON Schema):**
 ```json
 {
-  "is_blurry": true
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BlurryStatus",
+  "type": "object",
+  "properties": {
+    "is_blurry": {
+      "type": "boolean",
+      "description": "Indicates whether something is blurry"
+    }
+  },
+  "required": ["is_blurry"]
 }
 ```
 
-### 2. Standard JSON — /process 
+**Example Schema (Zod-style):**
+```typescript
+{
+  "schema": "z.object({ is_blurry: z.boolean().describe('Indicates whether something is blurry') })"
+}
+```
 
-**Standard JSON** runs our full parsing pipeline and aligns output to your schema.
+**Example Response:**
+```json
+{
+  "schema_result": "{\"is_blurry\": false}",
+  "status": "success"
+}
+```
+
+**API Reference**
+
+<Card title="Extract File API" href="api-reference/endpoint/extract" icon="code" />
+
+#### 2. Standard Schema — /process 
+
+**Standard Schema** runs our full parsing pipeline and aligns output to your schema.
 
 - Handles complex layouts (tables, annotations, etc.).
 - Slower, but more reliable for production workloads.
 - Input: PDF or image via upload or fileUrl
 - Provide schema to receive schema_result
 
+**Example Schema (JSON Schema):**
 ```json
 {
-  "invoice_number": "INV-00392",
-  "due_date": "2025-09-01",
-  "total_amount": 1042.50,
-  "line_items": [
-    {
-      "description": "Consulting",
-      "amount": 900.00
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Invoice",
+    "type": "object",
+    "properties": {
+      "invoice_number": {
+        "type": "string",
+        "description": "Unique identifier for the invoice"
+      },
+      "due_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Invoice due date in YYYY-MM-DD format"
+      },
+      "total_amount": {
+        "type": "number",
+        "description": "Total amount of the invoice"
+      },
+      "line_items": {
+        "type": "array",
+        "description": "List of line items on the invoice",
+        "items": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Description of the line item"
+            },
+            "amount": {
+              "type": "number",
+              "description": "Amount for this line item"
+            }
+          },
+          "required": ["description", "amount"]
+        }
+      }
     },
-    {
-      "description": "Tax",
-      "amount": 142.50
-    }
-  ]
+    "required": ["invoice_number", "due_date", "total_amount", "line_items"]
+  }
 }
-``` 
+```
+
+**Example Schema (TypeScript Interface):**
+```typescript
+{
+  "schema": "interface Invoice { invoice_number: string; due_date: string; total_amount: number; line_items: Array<{ description: string; amount: number; }>; }"
+}
+```
+
+**Example Schema (Pydantic-style):**
+```python
+{
+  "schema": "class Invoice(BaseModel): invoice_number: str; due_date: str; total_amount: float; line_items: List[Dict[str, Union[str, float]]]"
+}
+```
+
+### Supported Schema Formats
+
+You can provide your schema in any format as a string in the `schema` parameter:
+
+- **JSON Schema** - Standard JSON Schema as a stringified object
+- **Zod** - Zod schema definition as string
+- **TypeScript** - TypeScript interface or type definition
+- **Pydantic** - Pydantic model definition
+- **OpenAPI** - OpenAPI schema format as string
+- **Custom** - Any other structured format as a string
+
+### API Usage
+
+When making requests, include your schema as a string in the `schema` field:
+
+```javascript
+const response = await fetch('/process', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    fileUrl: 'your-document-url',
+    schema: 'z.object({ field: z.string() })' // your schema as string
+  })
+});
+```
+
+**Example Response:**
+```json
+{
+  "schema_result": "{\"invoice_number\": \"INV-00392\", \"due_date\": \"2025-09-01\", \"total_amount\": 1042.50, \"line_items\": [{\"description\": \"Consulting\", \"amount\": 900.00}, {\"description\": \"Tax\", \"amount\": 142.50}]}",
+  "status": "success"
+}
+```
+
+### Response Format
+
+The extracted data is returned as a **string** in the `schema_result` field, regardless of your input schema format. You'll need to parse this string to get the actual structured object:
+
+```javascript
+const response = await fetch('/process', { /* your request */ });
+const data = await response.json();
+const extractedData = JSON.parse(data.schema_result);
+```
+
+
+**API Reference**
+
+<Card title="Process File API" href="api-reference/endpoint/process" icon="code" />
+
 
 ### Long Document Caveats
-Right now, **longer files may cause JSON extraction to break or truncate** (especially with large arrays).
-We’re actively adding functionality to improve stability for multi-page and dense PDFs.
+Right now, **longer files may cause schema extraction to break or truncate** (especially with large arrays).
+We're actively adding functionality to improve stability for multi-page and dense PDFs.
 
 > 💡 If you hit issues with large files, you can paginate your PDF and run extraction page by page.
 

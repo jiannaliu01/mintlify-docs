@@ -21,35 +21,36 @@
             "group": "Introduction",
             "pages": [
               "index",
-              "quickstart"
-            ]
-          },
-          {
-            "group": "The Basics",
-            "pages": [
+              "quickstart",
               "file-types",
               "authentication/index"
             ]
           },
           {
-            "group": "Output Formats",
+            "group": "Building Blocks",
             "pages": [
-              "markdown",
+              "classify-split",
               "json",
+              "markdown",
+              "bounding-boxes",
               "output-response"
             ]
           },
           {
-            "group": "Key Features",
+            "group": "Accessories",
             "pages": [
-              "bounding-boxes",
               "image-metadata",
               "barcode",
               "signature",
               "dense-tables",
               "redlines",
-              "classify-split",
               "coming-soon"
+            ]
+          },
+          {
+            "group": "Eval",
+            "pages": [
+              "eval"
             ]
           },
           {
@@ -62,12 +63,6 @@
             ]
           },
           {
-            "group": "Eval",
-            "pages": [
-              "eval"
-            ]
-          },
-          {
             "group": "Recipes",
             "pages": [
               "recipes/rag-implementation",
@@ -75,9 +70,9 @@
             ]
           },
           {
-            "group": "Uptime",
+            "group": "Security",
             "pages": [
-              "uptime"
+              "enterprise/security/compliance"
             ]
           },
           {
@@ -90,9 +85,9 @@
             ]
           },
           {
-            "group": "Security",
+            "group": "Uptime",
             "pages": [
-              "enterprise/security/compliance"
+              "uptime"
             ]
           }
         ]
