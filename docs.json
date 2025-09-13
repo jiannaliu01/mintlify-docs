@@ -25,9 +25,9 @@
           {
             "group": "Building Blocks",
             "pages": [
-              "classify-split",
+              "partition",
               "json",
-              "markdown",
+              "parse",
               "bounding-boxes",
               "output-response"
             ]
@@ -103,7 +103,8 @@
             "pages": [
               "api-reference/endpoint/process",
               "api-reference/endpoint/extract",
-              "api-reference/endpoint/compare"
+              "api-reference/endpoint/compare",
+              "api-reference/endpoint/partition"
             ]
           }
         ]

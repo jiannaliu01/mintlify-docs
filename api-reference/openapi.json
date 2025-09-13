@@ -579,6 +579,186 @@
         }
       }
     },
+    "/partition": {
+      "post": {
+        "summary": "Partition Document into Sections",
+        "description": "Partition a document into logical sections using AI-powered classification based on user-provided queries. Automatically runs the full document processing pipeline first to ensure accurate text extraction before AI classification.",
+        "operationId": "partitionDocument",
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF or image file to upload (required if no document_url). Allowed: .pdf, .jpg, .jpeg, .png"
+                  },
+                  "document_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Publicly accessible URL of the file to process (required if no file)."
+                  },
+                  "queries": {
+                    "type": "string",
+                    "description": "Required JSON string containing array of PartitionQuery objects. Each query must have 'name' (section label) and 'description' (natural language hint for identifying pages)."
+                  },
+                  "start_page": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "description": "Page number to start processing from."
+                  }
+                },
+                "required": [
+                  "queries"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "document_url"
+                    ]
+                  }
+                ]
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "application/pdf,image/jpeg,image/png"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful document partitioning",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "description": "Array of page objects with extracted content",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "content": {
+                            "type": "string",
+                            "description": "Extracted text content from the page"
+                          },
+                          "page_number": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "partitions": {
+                      "type": "array",
+                      "description": "Array of partition results with classified page ranges",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The partition name from the query"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "The partition description from the query"
+                          },
+                          "pages": {
+                            "type": "array",
+                            "description": "Array of page numbers that match this partition (sorted)",
+                            "items": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "description",
+                          "pages"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "pages",
+                    "partitions"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "pages": [
+                    {
+                      "content": "ACME CORPORATION Annual Report...",
+                      "page_number": 1
+                    },
+                    {
+                      "content": "Financial Summary Table...",
+                      "page_number": 2
+                    }
+                  ],
+                  "partitions": [
+                    {
+                      "name": "cover_pages",
+                      "description": "Title pages, cover sheets, or document headers",
+                      "pages": [
+                        1
+                      ]
+                    },
+                    {
+                      "name": "financial_data",
+                      "description": "Pages with financial tables, revenue data, or numerical information",
+                      "pages": [
+                        2,
+                        5,
+                        6
+                      ]
+                    },
+                    {
+                      "name": "appendices",
+                      "description": "Supporting documents, references, or supplementary materials",
+                      "pages": [
+                        7,
+                        8,
+                        9
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (missing file/document_url, invalid queries JSON, unsupported file type, or missing queries)"
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing API key for non-demo requests)"
+          },
+          "500": {
+            "description": "Internal Server Error (document partitioning failed)"
+          }
+        }
+      }
+    },
     "/compare": {
       "post": {
         "summary": "Compare Cardinal results against a baseline",

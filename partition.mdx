@@ -1,0 +1,176 @@
+---
+title: "Partition"
+description: "Partition documents into semantic sections using AI-powered classification with Cardinal."
+---
+
+### Overview
+
+Cardinal’s **document partitioning** feature uses AI to split and classify documents into logical sections—driven entirely by your custom queries.
+
+You simply describe the sections you want in plain language, and Cardinal will:
+
+- **Analyze each page** of your document  
+- **Match pages to your descriptions**  
+- **Return structured page ranges** for every partition  
+- **Support multi-category classification** (pages can belong to more than one section)  
+
+Under the hood, Cardinal first runs the `/process` pipeline to produce an **accurate, high-fidelity representation of the original document** before classification begins.  
+
+Because `/process` paginates results, partitioning results will also be returned in chunks of **100 pages per call**.  
+
+This ensures your partitions are **precise, reliable, and directly traceable** back to the source.
+
+---
+
+### API Usage
+
+**Endpoint:** `POST /partition`
+
+**Content-Type:** `multipart/form-data`
+
+#### Required Parameters
+
+- **`queries`** (string) - JSON string containing an array of partition queries
+- Either **`file`** (file upload) OR **`document_url`** (string) - Document to partition
+
+#### Query Format
+
+Each partition query must include:
+- **`name`** - Label for the section (e.g., "invoices", "contracts")
+- **`description`** - Natural language hint for identifying relevant pages
+
+**Example Queries JSON:**
+```json
+[
+  {
+    "name": "invoices",
+    "description": "Pages containing invoice details, billing information, or payment requests"
+  },
+  {
+    "name": "contracts",
+    "description": "Legal agreements, terms of service, or contract documents"
+  },
+  {
+    "name": "financial_statements",
+    "description": "Balance sheets, income statements, or financial reports"
+  }
+]
+```
+
+### Example Request
+
+```python
+import requests
+import json
+
+# Prepare the partition queries
+queries = [
+    {
+        "name": "cover_pages",
+        "description": "Title pages, cover sheets, or document headers"
+    },
+    {
+        "name": "data_tables", 
+        "description": "Pages with structured data, tables, or numerical information"
+    },
+    {
+        "name": "appendices",
+        "description": "Supporting documents, references, or supplementary materials"
+    }
+]
+
+# Prepare the request
+files = {
+    'file': open('quarterly-report.pdf', 'rb')
+}
+
+data = {
+    'queries': json.dumps(queries),
+    'filename': 'quarterly-report.pdf',
+    'start_page': 1
+}
+
+headers = {
+    'Authorization': 'Bearer YOUR_API_KEY'
+}
+
+# Make the request
+response = requests.post(
+    'https://api.cardinal.co/partition',
+    files=files,
+    data=data,
+    headers=headers
+)
+
+result = response.json()
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "pages": [
+    {
+      "content": "Page 1 content...",
+      "page_number": 1
+    },
+    {
+      "content": "Page 2 content...",
+      "page_number": 2
+    }
+  ],
+  "partitions": [
+    {
+      "name": "cover_pages",
+      "description": "Title pages, cover sheets, or document headers",
+      "pages": [1]
+    },
+    {
+      "name": "data_tables", 
+      "description": "Pages with structured data, tables, or numerical information",
+      "pages": [3, 4, 7, 8]
+    },
+    {
+      "name": "appendices",
+      "description": "Supporting documents, references, or supplementary materials", 
+      "pages": [9, 10, 11]
+    }
+  ]
+}
+```
+
+### Response Format
+
+The response includes:
+
+- **`success`** - Boolean indicating if partitioning completed successfully
+- **`pages`** - Array of page objects with content and metadata
+- **`partitions`** - Array of partition results, each containing:
+  - **`name`** - The partition name from your query
+  - **`description`** - The partition description from your query  
+  - **`pages`** - Array of page numbers that match this partition (sorted)
+
+### Supported File Types
+
+Cardinal partitioning supports:
+
+- **PDF** files (.pdf)
+- **Images** (.jpg, .jpeg, .png)
+
+### Best Practices
+
+#### Writing Effective Queries
+
+**Good query descriptions:**
+- Be specific about content type: "Financial tables with revenue data"
+- Include context clues: "Pages with signatures or sign-off sections"
+- Mention visual indicators: "Charts, graphs, or data visualizations"
+
+**Less effective queries:**
+- Too vague: "Important pages"
+- Overly restrictive: "Page 5 specifically about Q3 sales in the northeast region"
+
+**API Reference**
+
+<Card title="Partition Document API" href="api-reference/endpoint/partition" icon="code" />
