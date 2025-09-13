@@ -1,0 +1,180 @@
+---
+title: "Supply Chain Workflows"
+description: "Step-by-step guide to processing diverse logistics documents using Cardinal API."
+---
+
+In supply chains, there are thousands of different types of documents. Every bill of lading looks different, every commercial invoice has its own format, and customs forms vary widely. To make sense of them, you often end up building a web of custom rules just to help your LLM decide what to extract from each document type.
+
+**What you'll build:** One system that handles infinite document variations.
+
+---
+
+## Step 1: Extract Accurate Document Representation with Cardinal API
+
+Cardinal converts your messy, scanned logistics documents into clean, structured markdown that preserves all the original information and layout.
+
+### Input: Raw Bill of Lading (PDF/Image)
+```
+[Scanned document with watermarks, stamps, handwriting, poor quality]
+```
+
+### Cardinal API Processing
+```python
+import requests
+import json
+
+def extract_document_markdown(file_path):
+    """Extract clean markdown from any supply chain document using Cardinal API"""
+    
+    url = "https://api.cardinal.com/process"
+    
+    # Prepare the file for upload
+    with open(file_path, 'rb') as file:
+        files = {
+            'file': (file_path, file, 'application/pdf')
+        }
+        
+        headers = {
+            'Authorization': 'Bearer YOUR_API_KEY'
+        }
+        
+        response = requests.post(url, files=files, headers=headers)
+        
+    if response.status_code == 200:
+        result = response.json()
+        return {
+            'markdown': result['pages'][0]['content']
+        }
+    else:
+        raise Exception(f"API Error: {response.status_code} - {response.text}")
+
+# Example usage
+result = extract_document_markdown("maersk_bl_12345.pdf")
+accurate_text = result['markdown']
+```
+
+### Output: Accurate Markdown Representation
+```markdown
+# MAERSK LINE
+## BILL OF LADING
+
+**B/L No:** MAEU123456789  
+**Booking No:** 234567890  
+
+### SHIPPER
+ACME MANUFACTURING CO LTD  
+123 INDUSTRIAL ROAD  
+SHANGHAI, CHINA 200000  
+
+### CONSIGNEE  
+GLOBAL IMPORTS LLC  
+456 WAREHOUSE BLVD  
+LOS ANGELES, CA 90021  
+USA
+
+### VESSEL/VOYAGE
+**Vessel:** MAERSK ESSEX  
+**Voyage:** 425W  
+**Port of Loading:** SHANGHAI, CHINA  
+**Port of Discharge:** LOS ANGELES, USA  
+
+### CONTAINER DETAILS
+| Container No | Seal No | Package | Description | Weight |
+|--------------|---------|---------|-------------|--------|
+| MRKU1234567 | SH12345 | 200 CTNS | ELECTRONIC COMPONENTS | 15,240 KG |
+
+### FREIGHT & CHARGES
+**Freight Prepaid**  
+Ocean Freight: USD 2,450.00  
+Documentation Fee: USD 50.00  
+**Total:** USD 2,500.00
+
+---
+*Signed by: Captain J. Smith*  
+*Date: March 15, 2024*
+```
+
+**Key Advantage:** Now you have clean, searchable text that preserves the document input for intelligent parsing.
+
+---
+
+## Step 2: Custom LLM Prompts for Intelligent Field Extraction
+
+With accurate markdown from Cardinal API, you can now create one universal prompt for downstream extraction that contains all of your previously isolated rules.
+
+### Universal Supply Chain Extraction Prompt
+
+```python
+def create_extraction_prompt(document_markdown, document_type):
+    prompt = f"""
+You are a supply chain document processing expert. Extract structured data from this {document_type}.
+
+DOCUMENT CONTENT:
+{document_markdown}
+
+EXTRACTION RULES:
+- Bills of Lading: The B/L number might be labeled as "B/L No", "BL Number", "Bill of Lading No", or "Document Number"
+- Container numbers: Always start with 4-letter code (MRKU, GESU, TEMU) followed by 7 digits
+- Vessel names: Usually near voyage information, may include vessel code
+- Ports: Extract both loading and discharge ports, standardize city names
+- Dates: Convert all date formats to YYYY-MM-DD
+- Weights: Extract and specify unit (KG, LBS, MT)
+- If a field is not found, return null rather than guessing
+
+For Maersk documents specifically:
+- B/L numbers always start with "MAEU"
+- Booking references are 9-10 digits
+- Vessel names often include "MAERSK" prefix
+
+For MSC documents specifically:  
+- B/L numbers start with "MEDU" or "MSCU"
+- Container numbers commonly start with "MSCU"
+- Booking format is different from Maersk
+
+REQUIRED OUTPUT FORMAT:
+{{
+  "document_type": "bill_of_lading",
+  "carrier": "maersk_line",
+  "bl_number": "extracted_bl_number",
+  "booking_reference": "extracted_booking",
+  "containers": [
+    {{
+      "number": "container_number",
+      "seal": "seal_number", 
+      "type": "container_type"
+    }}
+  ],
+  "shipper": {{
+    "name": "company_name",
+    "address": "full_address"
+  }},
+  "consignee": {{
+    "name": "company_name", 
+    "address": "full_address"
+  }},
+  "vessel": {{
+    "name": "vessel_name",
+    "voyage": "voyage_number"
+  }},
+  "ports": {{
+    "loading": "port_of_loading",
+    "discharge": "port_of_discharge"
+  }},
+  "cargo": [
+    {{
+      "description": "cargo_description",
+      "weight": "weight_with_unit",
+      "packages": "package_count"
+    }}
+  ],
+  "dates": {{
+    "issue_date": "YYYY-MM-DD",
+    "departure_date": "YYYY-MM-DD"
+  }}
+}}
+"""
+    return prompt
+```
+
+**The power of this approach:** your prompts can handle infinite document variations because they work on clean text.
+

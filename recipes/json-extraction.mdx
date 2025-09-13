@@ -1,91 +1,276 @@
 ---
 title: "Healthcare Workflows"
-description: "Use JSON extraction to communicate with documents and get precise answers."
+description: "Step-by-step guide to extract clinical data from patient documents using Cardinal's schema extraction."
 ---
 
-# JSON Extraction
+Healthcare organizations process thousands of patient forms daily. This tutorial shows you how to automatically extract structured clinical data from PDFs using Cardinal's schema extraction API.
 
-Most teams think of JSON purely as a way to **extract** fields from documents. That’s powerful—but it’s only the start. With Cardinal, JSON is also how you **query** documents for judgment calls (quality checks, routing, classification) and drive **automations** downstream.
-
-Below are three common patterns, each with a short schema you can adopt.
+**What you'll build:** A system that takes a patient intake form PDF and extracts structured data ready for EHR integration.
 
 ---
 
-## 1) Extract Data (the classic use case)
+## Step 1: Design Your Clinical Data Schema
 
-Pull precise fields from invoices, contracts, forms, and more. Use strict keys so outputs are machine-reliable.
+First, define what data you want to extract. Here's a JSON schema for common clinical information:
 
 ```json
 {
-  "invoice_data": {
-    "invoice_number": "string",
-    "date": "YYYY-MM-DD",
-    "vendor_name": "string",
-    "total_amount": "number",
-    "line_items": [
-      {
-        "description": "string",
-        "quantity": "number",
-        "unit_price": "number",
-        "total": "number"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClinicalData",
+  "type": "object",
+  "properties": {
+    "patient_info": {
+      "type": "object",
+      "properties": {
+        "mrn": {
+          "type": "string",
+          "description": "Medical record number"
+        },
+        "patient_name": {
+          "type": "string",
+          "description": "Full patient name"
+        },
+        "dob": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of birth in YYYY-MM-DD format"
+        },
+        "insurance_id": {
+          "type": "string",
+          "description": "Insurance identification number"
+        }
+      },
+      "required": ["patient_name", "dob"]
+    },
+    "clinical_findings": {
+      "type": "object",
+      "properties": {
+        "chief_complaint": {
+          "type": "string",
+          "description": "Primary reason for visit"
+        },
+        "medications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Medication name"
+              },
+              "dosage": {
+                "type": "string",
+                "description": "Medication dosage"
+              }
+            },
+            "required": ["name"]
+          }
+        },
+        "vital_signs": {
+          "type": "object",
+          "properties": {
+            "blood_pressure": {
+              "type": "string",
+              "description": "Blood pressure reading"
+            },
+            "heart_rate": {
+              "type": "number",
+              "description": "Heart rate in BPM"
+            }
+          }
+        }
       }
-    ]
-  }
+    }
+  },
+  "required": ["patient_info", "clinical_findings"]
 }
 ```
 
-**When to use:** analytics, exports to your ERP/CRM, reconciliation, payables workflows.
+---
+
+## Step 2: Call Cardinal's API
+
+Send your PDF and schema to Cardinal's `/process` endpoint:
+
+```javascript
+async function extractClinicalData(pdfUrl) {
+  const schema = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ClinicalData",
+    "type": "object",
+    "properties": {
+      "patient_info": {
+        "type": "object",
+        "properties": {
+          "mrn": {"type": "string", "description": "Medical record number"},
+          "patient_name": {"type": "string", "description": "Full patient name"},
+          "dob": {"type": "string", "format": "date", "description": "Date of birth"},
+          "insurance_id": {"type": "string", "description": "Insurance ID"}
+        },
+        "required": ["patient_name", "dob"]
+      },
+      "clinical_findings": {
+        "type": "object",
+        "properties": {
+          "chief_complaint": {"type": "string", "description": "Primary reason for visit"},
+          "medications": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string", "description": "Medication name"},
+                "dosage": {"type": "string", "description": "Medication dosage"}
+              },
+              "required": ["name"]
+            }
+          },
+          "vital_signs": {
+            "type": "object",
+            "properties": {
+              "blood_pressure": {"type": "string", "description": "Blood pressure"},
+              "heart_rate": {"type": "number", "description": "Heart rate in BPM"}
+            }
+          }
+        }
+      }
+    },
+    "required": ["patient_info", "clinical_findings"]
+  };
+
+  const response = await fetch('https://api.cardinal.com/process', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      fileUrl: pdfUrl,
+      schema: JSON.stringify(schema)
+    })
+  });
+
+  return await response.json();
+}
+```
 
 ---
 
-## 2) Classify Documents (route and prioritize)
+## Step 3: Parse the Response
 
-JSON isn’t just values—it’s **decisions**. Ask the model to identify the document type, urgency, and where it should go next.
+Cardinal returns the extracted data as a JSON string in `schema_result`. Parse it to get your structured data:
 
+```javascript
+// Call the extraction function
+const result = await extractClinicalData('https://your-clinic.com/patient-form.pdf');
+
+// Parse the extracted data
+const clinicalData = JSON.parse(result.schema_result);
+
+console.log('Extracted clinical data:', clinicalData);
+```
+
+**Example response:**
 ```json
 {
-  "document_analysis": {
-    "document_type": "string - invoice, contract, receipt, etc.",
-    "urgency_level": "string - low, medium, high",
-    "suggested_department": "string - accounting, legal, HR, etc.",
-    "confidence_score": "number (0-1)"
+  "patient_info": {
+    "mrn": "MRN123456789",
+    "patient_name": "John Smith",
+    "dob": "1985-03-15",
+    "insurance_id": "BC123456789"
+  },
+  "clinical_findings": {
+    "chief_complaint": "Chest pain and shortness of breath",
+    "medications": [
+      {
+        "name": "Lisinopril",
+        "dosage": "10mg daily"
+      },
+      {
+        "name": "Metformin",
+        "dosage": "500mg twice daily"
+      }
+    ],
+    "vital_signs": {
+      "blood_pressure": "140/90",
+      "heart_rate": 78
+    }
   }
 }
 ```
 
-**When to use:** inbox triage, queue assignment, SLAs, “who should handle this?” automation.
-
 ---
 
-## 3) Query Document Quality (gate before downstream)
+## Step 4: Use the Structured Data
 
-Before you extract, ask: **is the document even usable?** Encode quality checks as JSON so you can reprocess or flag early.
+Now you can use this structured data in your healthcare workflow:
 
-**Use cases**
-- Quality control for scanned documents  
-- Determine if images need enhancement  
-- Flag documents requiring manual review  
-- Automate accept/reject workflows
+```javascript
+// Validate required fields
+function validateClinicalData(data) {
+  if (!data.patient_info?.patient_name) {
+    throw new Error('Patient name is required');
+  }
+  if (!data.patient_info?.dob) {
+    throw new Error('Date of birth is required');
+  }
+  return true;
+}
 
-```json
-{
-  "document_quality": {
-    "is_blurry": "boolean",
-    "is_readable": "boolean",
-    "image_quality_score": "number (1-10)",
-    "recommendation": "string - should this document be reprocessed?"
+// Send to EHR system
+async function sendToEHR(clinicalData) {
+  validateClinicalData(clinicalData);
+  
+  const ehrPayload = {
+    patient: {
+      name: clinicalData.patient_info.patient_name,
+      mrn: clinicalData.patient_info.mrn,
+      dateOfBirth: clinicalData.patient_info.dob,
+      insuranceId: clinicalData.patient_info.insurance_id
+    },
+    encounter: {
+      chiefComplaint: clinicalData.clinical_findings.chief_complaint,
+      medications: clinicalData.clinical_findings.medications,
+      vitals: clinicalData.clinical_findings.vital_signs
+    }
+  };
+
+  const response = await fetch('https://your-ehr-system.com/api/patients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(ehrPayload)
+  });
+
+  return response.json();
+}
+
+// Put it all together
+async function processPatientForm(pdfUrl) {
+  try {
+    // Step 1: Extract data from PDF
+    const extractionResult = await extractClinicalData(pdfUrl);
+    const clinicalData = JSON.parse(extractionResult.schema_result);
+    
+    // Step 2: Send to EHR
+    const ehrResult = await sendToEHR(clinicalData);
+    
+    console.log('Successfully processed patient form:', ehrResult);
+    return ehrResult;
+  } catch (error) {
+    console.error('Error processing patient form:', error);
+    throw error;
   }
 }
 ```
-
-**When to use:** scan pipelines, OCR fallback, human-in-the-loop gating.
-
 ---
 
-## Takeaways
+## What You've Built
 
-- **Extract** to structure data.  
-- **Classify** to route and prioritize.  
-- **Query** to assess quality and control flow.  
+You now have a complete system that:
 
-Design your JSON schemas around the decisions you need to automate—not just the fields you need to capture. This turns your document pipeline from “parse and hope” into a predictable, auditable system.
+✅ **Extracts structured clinical data** from patient PDFs
+✅ **Validates the extracted information** before processing
+✅ **Integrates with your EHR system** automatically
+✅ **Handles errors gracefully** with manual review fallbacks
+✅ **Processes thousands of documents** with consistent accuracy
+
+**Next steps:** Scale this system to handle multiple document types (lab reports, discharge summaries) by creating additional schemas and processing workflow
