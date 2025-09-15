@@ -142,7 +142,9 @@
   },
   "footer": {
     "socials": {
-      "linkedin": "https://www.linkedin.com/company/trycardinalai"
+      "linkedin": "https://www.linkedin.com/company/trycardinalai",
+      "discord": "https://discord.gg/uz3r32q6",
+      "twitter": "https://x.com/trycardinalai"
     }
   }
 }

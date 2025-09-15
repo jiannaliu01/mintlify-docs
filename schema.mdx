@@ -69,7 +69,8 @@ schema = {
 data = {
     "fileUrl": "https://example.com/doc.pdf",
     "schema": json.dumps(schema),
-    "fast": "true"
+    "fast": "true",
+    "customContext": "Focus on image quality and clarity when determining blur status"  # optional
 }
 
 response = requests.post("https://api.trycardinal.ai/extract", data=data)
@@ -151,7 +152,8 @@ schema = {
 data = {
     "fileUrl": "https://example.com/invoice.pdf",
     "schema": json.dumps(schema),
-    "fast": "false"  # standard mode
+    "fast": "false",  # standard mode
+    "customContext": "This is a medical billing invoice. Pay attention to procedure codes and insurance information."  # optional
 }
 
 response = requests.post("https://api.trycardinal.ai/extract", data=data)
@@ -180,6 +182,18 @@ Pass your schema as a string in the `schema` field:
 - OpenAPI (schema as string)
 - Custom (any structured format as string)
 
+### Custom Context
+
+You can provide additional context to guide the extraction process using the optional `customContext` parameter:
+
+- **Parameter:** `customContext` (string, optional)
+- **Purpose:** Provides additional context or instructions to help the AI better understand your document or extraction requirements
+- **Examples:**
+  - `"This document contains medical terminology and abbreviations"`
+  - `"Focus on financial data and ignore header/footer information"`
+  - `"The document may contain handwritten notes in the margins"`
+  - `"This is a form from 1995, so date formats may be non-standard"`
+
 ### API Usage Snippets
 
 ### Python (generic)
@@ -191,7 +205,8 @@ import json
 data = {
     "fileUrl": "https://example.com/doc.pdf",
     "schema": "z.object({ field: z.string().nullable() })",
-    "fast": "true"  # or "false"
+    "fast": "true",  # or "false"
+    "customContext": "Document contains technical jargon specific to aerospace industry"
 }
 
 response = requests.post("https://api.trycardinal.ai/extract", data=data)
@@ -211,7 +226,8 @@ curl -X POST https://api.trycardinal.ai/extract \
   -H "x-api-key: YOUR_KEY" \
   -F fileUrl="https://example.com/doc.pdf" \
   -F schema='{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"field":{"type":"string"}}}' \
-  -F fast=true
+  -F fast=true \
+  -F customContext="Pay special attention to dates and numerical values"
 ```
 
 ### Response Format
@@ -242,6 +258,7 @@ Longer files (especially with large arrays) may produce truncated arrays or part
 
 - Use `fast: false` for complex, multi-page documents
 - Paginate large PDFs and run `/extract` per chunk, then merge arrays client-side
+- Leverage `customContext` to provide domain-specific guidance for better extraction accuracy
 
 ### API Reference
 

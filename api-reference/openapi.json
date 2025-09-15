@@ -204,6 +204,10 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Fast path that extracts directly from pages without full pipeline post-processing."
+                  },
+                  "customContext": {
+                    "type": "string",
+                    "description": "Optional additional context or instructions to guide the extraction process. Useful for providing domain-specific guidance or clarifications about the document."
                   }
                 },
                 "required": [
