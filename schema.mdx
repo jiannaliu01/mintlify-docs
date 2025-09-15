@@ -5,30 +5,30 @@ description: "Extract structured data from documents using Cardinal with flexibl
 
 ### Overview
 
-Cardinal's schema extraction mode lets you define the structure you want and receive structured data back. 
+Cardinal's schema extraction lets you define the structure you want and get structured data back.
 
-You provide the schema format of your choice, and Cardinal will attempt to align extracted values to it:
+- Fields missing in the document return null
+- Fields not in your schema are ignored
+- Arrays are supported (see long-doc caveats below)
 
-- Fields missing in the document will return **`null`**.  
-- Fields not included in your schema are **ignored**.  
-- Arrays are supported, though long PDFs may return partial arrays (see caveats below).  
-
----
+**Endpoint:** `POST /extract` (supports PDF and images via upload or fileUrl)  
+**Mode:** Set `fast` to `true` (fast path) or `false` (standard path)
 
 ### Methods of Schema Extraction
 
-We currently offer **two methods of schema extraction** depending on your use case:
+We offer two modes on the same endpoint:
 
-#### 1. Fast Schema — /extract (PDF only)
+### Fast Schema — `/extract` with `fast: true`
 
-Use **Fast Schema** when you need a quick, lightweight response with **lower cost and latency**.
+Use Fast when you need a quick, low-latency, lower-cost pass.
 
-- Best for short docs or targeted checks (e.g., "is this image blurry?")
-- Prioritizes speed and cost-efficiency over deep parsing
-- Input: PDF via upload or fileUrl
-- You must provide a schema in your preferred format
+- Best for short docs or targeted checks
+- Prioritizes speed over deep parsing
+- **Input:** PDF or image (`.pdf`, `.jpg`, `.jpeg`, `.png`)
+- Provide your schema as a string
 
-**Example Schema (JSON Schema):**
+#### Example Schema (JSON Schema)
+
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -44,149 +44,205 @@ Use **Fast Schema** when you need a quick, lightweight response with **lower cos
 }
 ```
 
-**Example Schema (Zod-style):**
-```typescript
+#### Example Schema (Zod-style)
+
+```json
 {
   "schema": "z.object({ is_blurry: z.boolean().describe('Indicates whether something is blurry') })"
 }
 ```
 
-**Example Response:**
+#### Request (requests)
+
+```python
+import requests
+import json
+
+schema = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "BlurryStatus",
+    "type": "object",
+    "properties": {"is_blurry": {"type": "boolean"}},
+    "required": ["is_blurry"]
+}
+
+data = {
+    "fileUrl": "https://example.com/doc.pdf",
+    "schema": json.dumps(schema),
+    "fast": "true"
+}
+
+response = requests.post("https://api.trycardinal.ai/extract", data=data)
+data = response.json()
+```
+
+#### Example Response
+
 ```json
 {
-  "schema_result": "{\"is_blurry\": false}",
-  "status": "success"
+  "response": "{\"is_blurry\": false}",
+  "method": "fast"
 }
 ```
 
-**API Reference**
+### 2 Standard Schema — `/extract` with `fast: false`
 
-<Card title="Extract File API" href="api-reference/endpoint/extract" icon="code" />
+- Runs the full parsing pipeline first, then aligns to your schema
+- Best for complex layouts (dense tables, annotations, multi-page forms)
+- Slower, but more reliable for production workloads
+- **Input:** PDF or image via upload or fileUrl
 
-#### 2. Standard Schema — /process 
+#### Example Schema (JSON Schema)
 
-**Standard Schema** runs our full parsing pipeline and aligns output to your schema.
-
-- Handles complex layouts (tables, annotations, etc.).
-- Slower, but more reliable for production workloads.
-- Input: PDF or image via upload or fileUrl
-- Provide schema to receive schema_result
-
-**Example Schema (JSON Schema):**
 ```json
 {
-  "schema": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": { "type": "string" },
+    "due_date": { "type": "string", "format": "date" },
+    "total_amount": { "type": "number" },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "amount": { "type": "number" }
+        },
+        "required": ["description", "amount"]
+      }
+    }
+  },
+  "required": ["invoice_number", "due_date", "total_amount", "line_items"]
+}
+```
+
+#### Request (requests)
+
+```python
+import requests
+import json
+
+schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Invoice",
     "type": "object",
     "properties": {
-      "invoice_number": {
-        "type": "string",
-        "description": "Unique identifier for the invoice"
-      },
-      "due_date": {
-        "type": "string",
-        "format": "date",
-        "description": "Invoice due date in YYYY-MM-DD format"
-      },
-      "total_amount": {
-        "type": "number",
-        "description": "Total amount of the invoice"
-      },
-      "line_items": {
-        "type": "array",
-        "description": "List of line items on the invoice",
-        "items": {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": "string",
-              "description": "Description of the line item"
-            },
-            "amount": {
-              "type": "number",
-              "description": "Amount for this line item"
+        "invoice_number": {"type": "string"},
+        "due_date": {"type": "string", "format": "date"},
+        "total_amount": {"type": "number"},
+        "line_items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string"},
+                    "amount": {"type": "number"}
+                },
+                "required": ["description", "amount"]
             }
-          },
-          "required": ["description", "amount"]
         }
-      }
     },
     "required": ["invoice_number", "due_date", "total_amount", "line_items"]
-  }
 }
+
+data = {
+    "fileUrl": "https://example.com/invoice.pdf",
+    "schema": json.dumps(schema),
+    "fast": "false"  # standard mode
+}
+
+response = requests.post("https://api.trycardinal.ai/extract", data=data)
+data = response.json()
 ```
 
-**Example Schema (TypeScript Interface):**
-```typescript
-{
-  "schema": "interface Invoice { invoice_number: string; due_date: string; total_amount: number; line_items: Array<{ description: string; amount: number; }>; }"
-}
-```
+#### Example Response
 
-**Example Schema (Pydantic-style):**
-```python
+```json
 {
-  "schema": "class Invoice(BaseModel): invoice_number: str; due_date: str; total_amount: float; line_items: List[Dict[str, Union[str, float]]]"
+  "success": true,
+  "response": "{\"invoice_number\":\"INV-00392\",\"due_date\":\"2025-09-01\",\"total_amount\":1042.50,\"line_items\":[{\"description\":\"Consulting\",\"amount\":900.00},{\"description\":\"Tax\",\"amount\":142.50}]}",
+  "method": "slow",
+  "pages_processed": 6
 }
 ```
 
 ### Supported Schema Formats
 
-You can provide your schema in any format as a string in the `schema` parameter:
+Pass your schema as a string in the `schema` field:
 
-- **JSON Schema** - Standard JSON Schema as a stringified object
-- **Zod** - Zod schema definition as string
-- **TypeScript** - TypeScript interface or type definition
-- **Pydantic** - Pydantic model definition
-- **OpenAPI** - OpenAPI schema format as string
-- **Custom** - Any other structured format as a string
+- JSON Schema (stringified object)
+- Zod (string)
+- TypeScript (interface/type as string)
+- Pydantic (model definition as string)
+- OpenAPI (schema as string)
+- Custom (any structured format as string)
 
-### API Usage
+### API Usage Snippets
 
-When making requests, include your schema as a string in the `schema` field:
+### Python (generic)
 
-```javascript
-const response = await fetch('/process', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    fileUrl: 'your-document-url',
-    schema: 'z.object({ field: z.string() })' // your schema as string
-  })
-});
+```python
+import requests
+import json
+
+data = {
+    "fileUrl": "https://example.com/doc.pdf",
+    "schema": "z.object({ field: z.string().nullable() })",
+    "fast": "true"  # or "false"
+}
+
+response = requests.post("https://api.trycardinal.ai/extract", data=data)
+result = response.json()
+
+# `response` may be an object or a stringified JSON depending on config/model:
+if isinstance(result["response"], str):
+    extracted = json.loads(result["response"])
+else:
+    extracted = result["response"]
 ```
 
-**Example Response:**
-```json
-{
-  "schema_result": "{\"invoice_number\": \"INV-00392\", \"due_date\": \"2025-09-01\", \"total_amount\": 1042.50, \"line_items\": [{\"description\": \"Consulting\", \"amount\": 900.00}, {\"description\": \"Tax\", \"amount\": 142.50}]}",
-  "status": "success"
-}
+### cURL
+
+```bash
+curl -X POST https://api.trycardinal.ai/extract \
+  -H "x-api-key: YOUR_KEY" \
+  -F fileUrl="https://example.com/doc.pdf" \
+  -F schema='{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"field":{"type":"string"}}}' \
+  -F fast=true
 ```
 
 ### Response Format
 
-The extracted data is returned as a **string** in the `schema_result` field, regardless of your input schema format. You'll need to parse this string to get the actual structured object:
+`/extract` returns:
 
-```javascript
-const response = await fetch('/process', { /* your request */ });
-const data = await response.json();
-const extractedData = JSON.parse(data.schema_result);
+- `response` – the extracted data (either an object or a JSON string)
+- `method` – "fast" or "slow"
+- `pages_processed` – present in slow mode
+- `success` – present in slow mode
+
+If `response` is a string, parse it:
+
+```python
+import json
+
+if isinstance(result["response"], str):
+    extracted = json.loads(result["response"])
+else:
+    extracted = result["response"]
 ```
 
-
-**API Reference**
-
-<Card title="Process File API" href="api-reference/endpoint/process" icon="code" />
-
-
 ### Long Document Caveats
-Right now, **longer files may cause schema extraction to break or truncate** (especially with large arrays).
-We're actively adding functionality to improve stability for multi-page and dense PDFs.
 
-> 💡 If you hit issues with large files, you can paginate your PDF and run extraction page by page.
+Longer files (especially with large arrays) may produce truncated arrays or partial results.
 
-### Coming Soon
+### Tips
 
-- Automatic chunking for long PDFs
+- Use `fast: false` for complex, multi-page documents
+- Paginate large PDFs and run `/extract` per chunk, then merge arrays client-side
+
+### API Reference
+
+<Card title="Extract API" href="api-reference/endpoint/extract" icon="code" />

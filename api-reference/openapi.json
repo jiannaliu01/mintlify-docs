@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Document Processing API",
-    "description": "API for processing PDF/image files into structured Markdown and optionally extracting structured JSON using schemas.",
+    "description": "API for processing PDF/image files into structured Markdown and optionally extracting structured data using schemas.",
     "version": "1.0.1"
   },
   "servers": [
@@ -14,7 +14,7 @@
     "/process": {
       "post": {
         "summary": "Process File",
-        "description": "Convert PDF or image pages into clean, structured Markdown. Optionally extract structured JSON using a schema. Post-processing (barcodes, signatures, etc.) is off by default and, when enabled, will add latency.",
+        "description": "Convert PDF or image pages into clean, structured Markdown. Post-processing (barcodes, signatures, etc.) is off by default and, when enabled, will add latency.",
         "operationId": "processFile",
         "security": [
           {
@@ -52,18 +52,6 @@
                     "type": "boolean",
                     "default": false,
                     "description": "If true, results are not stored; any generated assets are short-lived."
-                  },
-                  "schema": {
-                    "type": "string",
-                    "description": "Schema definition to guide extraction (JSON Schema or Zod string)."
-                  },
-                  "schema_format": {
-                    "type": "string",
-                    "enum": [
-                      "json",
-                      "zod"
-                    ],
-                    "description": "Format of the provided schema."
                   },
                   "boundingBoxesParagraphs": {
                     "type": "boolean",
@@ -132,220 +120,27 @@
                     },
                     "barcodes": {
                       "type": "array",
-                      "description": "Present when post_processing_on=true and barcodes are detected.",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "image_url": {
-                            "type": "string",
-                            "format": "uri"
-                          },
-                          "bounding_box": {
-                            "type": "object",
-                            "properties": {
-                              "x_min": {
-                                "type": "number"
-                              },
-                              "y_min": {
-                                "type": "number"
-                              },
-                              "x_max": {
-                                "type": "number"
-                              },
-                              "y_max": {
-                                "type": "number"
-                              },
-                              "width": {
-                                "type": "number"
-                              },
-                              "height": {
-                                "type": "number"
-                              }
-                            }
-                          },
-                          "original_polygon": {
-                            "type": "array",
-                            "items": {
-                              "type": "number"
-                            },
-                            "description": "Polygon coordinates of the detected region."
-                          },
-                          "barcode_type": {
-                            "type": "string"
-                          },
-                          "barcode_value": {
-                            "type": "string"
-                          },
-                          "page_number": {
-                            "type": "integer"
-                          },
-                          "confidence": {
-                            "type": "number"
-                          },
-                          "barcode_index": {
-                            "type": "integer"
-                          }
-                        }
+                        "type": "object"
                       }
                     },
                     "signatures": {
                       "type": "array",
-                      "description": "Present when post_processing_on=true and signatures are detected.",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "is_signature": {
-                            "type": "string",
-                            "description": "\"yes\" or \"no\""
-                          },
-                          "signed_by": {
-                            "type": "string"
-                          },
-                          "signature_url": {
-                            "type": "string",
-                            "format": "uri"
-                          }
-                        }
+                        "type": "object"
                       }
                     },
                     "processed_tables": {
                       "type": "array",
-                      "description": "Dense/small-text tables extracted automatically.",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "table_index": {
-                            "type": "integer"
-                          },
-                          "page_number": {
-                            "type": "integer"
-                          },
-                          "bounding_box": {
-                            "type": "object",
-                            "properties": {
-                              "page_number": {
-                                "type": "integer"
-                              },
-                              "min_x": {
-                                "type": "number"
-                              },
-                              "min_y": {
-                                "type": "number"
-                              },
-                              "max_x": {
-                                "type": "number"
-                              },
-                              "max_y": {
-                                "type": "number"
-                              },
-                              "row_count": {
-                                "type": "integer"
-                              },
-                              "column_count": {
-                                "type": "integer"
-                              },
-                              "polygon": {
-                                "type": "array",
-                                "items": {
-                                  "type": "number"
-                                }
-                              }
-                            }
-                          },
-                          "row_count": {
-                            "type": "integer"
-                          },
-                          "column_count": {
-                            "type": "integer"
-                          },
-                          "image_format": {
-                            "type": "string"
-                          },
-                          "crop_coordinates": {
-                            "type": "object",
-                            "properties": {
-                              "left": {
-                                "type": "number"
-                              },
-                              "top": {
-                                "type": "number"
-                              },
-                              "right": {
-                                "type": "number"
-                              },
-                              "bottom": {
-                                "type": "number"
-                              },
-                              "width": {
-                                "type": "number"
-                              },
-                              "height": {
-                                "type": "number"
-                              }
-                            }
-                          },
-                          "dpi_x": {
-                            "type": "number"
-                          },
-                          "dpi_y": {
-                            "type": "number"
-                          },
-                          "text_content": {
-                            "type": "string",
-                            "description": "Extracted HTML/Markdown table text."
-                          },
-                          "html_code": {
-                            "type": "string"
-                          }
-                        }
+                        "type": "object"
                       }
                     },
                     "image_metadata": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "image_id": {
-                            "type": "string"
-                          },
-                          "format": {
-                            "type": "string"
-                          },
-                          "size": {
-                            "type": "object",
-                            "properties": {
-                              "width": {
-                                "type": "integer"
-                              },
-                              "height": {
-                                "type": "integer"
-                              }
-                            }
-                          },
-                          "position": {
-                            "type": "object",
-                            "properties": {
-                              "x": {
-                                "type": "integer"
-                              },
-                              "y": {
-                                "type": "integer"
-                              }
-                            }
-                          },
-                          "caption": {
-                            "type": "string"
-                          },
-                          "cropped_image_url": {
-                            "type": "string"
-                          }
-                        }
+                        "type": "object"
                       }
-                    },
-                    "schema_result": {
-                      "type": "object",
-                      "description": "Structured schema extracted when schema + schema_format are provided.",
-                      "additionalProperties": true
                     }
                   }
                 },
@@ -360,86 +155,7 @@
                       "height": 792.0,
                       "width": 612.0
                     }
-                  ],
-                  "barcodes": [
-                    {
-                      "image_url": "https://cardinal-ai-bucket.s3.amazonaws.com/jianna%40leafpress.io/barcode_1_1_DocumentBarcodeKind.CODE128.png?...",
-                      "bounding_box": {
-                        "x_min": 1506.6869,
-                        "y_min": 107.3429,
-                        "x_max": 1835.3657,
-                        "y_max": 154.0509,
-                        "width": 328.6788,
-                        "height": 46.7080
-                      },
-                      "original_polygon": [
-                        7.5815,
-                        0.5861,
-                        9.1245,
-                        0.5861,
-                        9.1245,
-                        0.7195,
-                        7.5815,
-                        0.7195
-                      ],
-                      "barcode_type": "Code128",
-                      "barcode_value": "CFP2023112000005",
-                      "page_number": 1,
-                      "confidence": 1.0,
-                      "barcode_index": 1
-                    }
-                  ],
-                  "signatures": [
-                    {
-                      "is_signature": "yes",
-                      "signed_by": "DR. Harding",
-                      "signature_url": "https://cardinal-ai-bucket.s3.amazonaws.com/.../signature_8024ce94-fa21-474a-9dbe-c80c603ba5db.png"
-                    }
-                  ],
-                  "processed_tables": [
-                    {
-                      "table_index": 0,
-                      "page_number": 1,
-                      "bounding_box": {
-                        "page_number": 1,
-                        "min_x": 0.284,
-                        "min_y": 0.8275,
-                        "max_x": 3.6697,
-                        "max_y": 2.4552,
-                        "row_count": 26,
-                        "column_count": 10,
-                        "polygon": [
-                          0.284,
-                          0.8275,
-                          3.6687,
-                          0.8282,
-                          3.6697,
-                          2.4552,
-                          0.2852,
-                          2.4547
-                        ]
-                      },
-                      "row_count": 26,
-                      "column_count": 10,
-                      "image_format": "png",
-                      "crop_coordinates": {
-                        "left": 85,
-                        "top": 248,
-                        "right": 1100,
-                        "bottom": 736,
-                        "width": 1015,
-                        "height": 488
-                      },
-                      "dpi_x": 300.0,
-                      "dpi_y": 300.0,
-                      "text_content": "<table>...</table>",
-                      "html_code": ""
-                    }
-                  ],
-                  "schema_result": {
-                    "invoiceNumber": "250339",
-                    "dueDate": "2025-04-18"
-                  }
+                  ]
                 }
               }
             }
@@ -456,7 +172,7 @@
     "/extract": {
       "post": {
         "summary": "Extract Structured Data by Schema",
-        "description": "Extracts structured JSON from a PDF using a required schema. Accepts a file upload **or** a `fileUrl`. PDF only.",
+        "description": "Extracts structured data from a PDF or image using a required schema. Accepts a file upload **or** a `fileUrl`.",
         "operationId": "extractSchema",
         "security": [
           {
@@ -473,16 +189,21 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "PDF file to upload (required if no fileUrl). Only .pdf allowed."
+                    "description": "PDF or image to upload (required if no fileUrl). Allowed: .pdf, .jpg, .jpeg, .png"
                   },
                   "fileUrl": {
                     "type": "string",
                     "format": "uri",
-                    "description": "Publicly accessible URL of the PDF to process (required if no file). Only .pdf allowed."
+                    "description": "Publicly accessible URL of the file to process (required if no file)."
                   },
                   "schema": {
                     "type": "string",
-                    "description": "Required schema definition (JSON Schema or Zod string) describing the fields to extract."
+                    "description": "Required schema definition describing the fields to extract."
+                  },
+                  "fast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Fast path that extracts directly from pages without full pipeline post-processing."
                   }
                 },
                 "required": [
@@ -503,7 +224,7 @@
               },
               "encoding": {
                 "file": {
-                  "contentType": "application/pdf"
+                  "contentType": "application/pdf,image/jpeg,image/png"
                 }
               }
             }
@@ -519,7 +240,7 @@
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "JSON schema extracted successfully"
+                      "example": "Schema extracted successfully"
                     },
                     "response": {
                       "oneOf": [
@@ -529,37 +250,26 @@
                         },
                         {
                           "type": "string",
-                          "description": "May be a JSON string depending on configuration."
+                          "description": "May be a string depending on configuration."
                         }
                       ],
                       "description": "Model's structured output matching the provided schema."
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "fast",
+                        "slow"
+                      ]
+                    },
+                    "pages_processed": {
+                      "type": "integer",
+                      "description": "Present in slow mode."
                     }
                   },
                   "required": [
-                    "message",
                     "response"
                   ]
-                },
-                "examples": {
-                  "jsonObject": {
-                    "summary": "Typical object response",
-                    "value": {
-                      "message": "JSON schema extracted successfully",
-                      "response": {
-                        "invoiceNumber": "250339",
-                        "invoiceDate": "2025-04-08",
-                        "dueDate": "2025-04-18",
-                        "totalDue": 1234.56
-                      }
-                    }
-                  },
-                  "jsonString": {
-                    "summary": "Stringified JSON response",
-                    "value": {
-                      "message": "JSON schema extracted successfully",
-                      "response": "{\"invoiceNumber\":\"250339\",\"invoiceDate\":\"2025-04-08\",\"dueDate\":\"2025-04-18\",\"totalDue\":1234.56}"
-                    }
-                  }
                 }
               }
             }
@@ -571,7 +281,7 @@
             "description": "Unauthorized (invalid or missing API key for non-demo requests)"
           },
           "415": {
-            "description": "Unsupported Media Type (only application/pdf accepted for /extract)"
+            "description": "Unsupported Media Type"
           },
           "500": {
             "description": "Internal Server Error (schema extraction failed)"
@@ -608,7 +318,7 @@
                   },
                   "queries": {
                     "type": "string",
-                    "description": "Required JSON string containing array of PartitionQuery objects. Each query must have 'name' (section label) and 'description' (natural language hint for identifying pages)."
+                    "description": "Required string containing array of PartitionQuery objects. Each query must have 'name' (section label) and 'description' (natural language hint for identifying pages)."
                   },
                   "start_page": {
                     "type": "integer",
@@ -748,7 +458,7 @@
             }
           },
           "400": {
-            "description": "Bad request (missing file/document_url, invalid queries JSON, unsupported file type, or missing queries)"
+            "description": "Bad request (missing file/document_url, invalid queries, unsupported file type, or missing queries)"
           },
           "401": {
             "description": "Unauthorized (invalid or missing API key for non-demo requests)"
@@ -762,7 +472,7 @@
     "/compare": {
       "post": {
         "summary": "Compare Cardinal results against a baseline",
-        "description": "Runs Cardinal extraction on a PDF or image and returns the standard processing payload **plus** a `dashboard_url` for the evals UI. Optionally include `original_results` (e.g., a Markdown string from another OCR system) to store side-by-side comparison data for the dashboard.",
+        "description": "Runs Cardinal extraction on a PDF or image and returns the standard processing payload **plus** a `dashboard_url` for the evals UI. Optionally include `original_results` to store side-by-side comparison data for the dashboard.",
         "operationId": "compareFile",
         "security": [
           {
@@ -806,14 +516,6 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Include bounding box overlays for text blocks."
-                  },
-                  "schema_format": {
-                    "type": "string",
-                    "enum": [
-                      "json",
-                      "zod"
-                    ],
-                    "description": "Format of `schema`."
                   },
                   "markdown": {
                     "type": "boolean",
@@ -862,69 +564,6 @@
                   },
                   "additionalProperties": true,
                   "description": "The response is the normal /process payload merged with { dashboard_url }."
-                },
-                "examples": {
-                  "example": {
-                    "summary": "Merged payload with evals URL",
-                    "value": {
-                      "success": true,
-                      "total_pages": 2,
-                      "successful_pages": 2,
-                      "failed_pages": 0,
-                      "pages": [
-                        {
-                          "content": "ACME CORPORATION\\nInvoice #INV-2024-001\\n...",
-                          "height": 792.0,
-                          "width": 612.0
-                        }
-                      ],
-                      "processed_tables": [
-                        {
-                          "table_index": 0,
-                          "page_number": 1,
-                          "bounding_box": {
-                            "page_number": 1,
-                            "min_x": 0.284,
-                            "min_y": 0.8275,
-                            "max_x": 3.6697,
-                            "max_y": 2.4552,
-                            "row_count": 26,
-                            "column_count": 10,
-                            "polygon": [
-                              0.284,
-                              0.8275,
-                              3.6687,
-                              0.8282,
-                              3.6697,
-                              2.4552,
-                              0.2852,
-                              2.4547
-                            ]
-                          },
-                          "row_count": 26,
-                          "column_count": 10,
-                          "image_format": "png",
-                          "crop_coordinates": {
-                            "left": 85,
-                            "top": 248,
-                            "right": 1100,
-                            "bottom": 736,
-                            "width": 1015,
-                            "height": 488
-                          },
-                          "dpi_x": 300.0,
-                          "dpi_y": 300.0,
-                          "text_content": "<table>...</table>",
-                          "html_code": ""
-                        }
-                      ],
-                      "schema_result": {
-                        "invoiceNumber": "250339",
-                        "dueDate": "2025-04-18"
-                      },
-                      "dashboard_url": "https://dashboard.trycardinal.ai/evals?file_name=7db1f2f3-1a2b-4c5d-9e0f-112233445566"
-                    }
-                  }
                 }
               }
             }
