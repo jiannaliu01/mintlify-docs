@@ -38,12 +38,27 @@
                     "format": "uri",
                     "description": "Publicly accessible URL of the file to process (required if no file)."
                   },
-                  "post_processing_on": {
+                  "imageMetadataDetect": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Enable advanced passes (e.g., barcode/signature detection). Note: Enabling this will increase latency."
+                    "description": "If true, includes image metadata in the response."
                   },
-                  "start_page": {
+                  "barcodeDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes barcode detection in the response."
+                  },
+                  "denseTables": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes dense tables in the response."
+                  },
+                  "signatureDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes signature detection in the response."
+                  },
+                  "startPage": {
                     "type": "integer",
                     "default": 1,
                     "description": "Page number to start processing from."
@@ -52,6 +67,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "If true, results are not stored; any generated assets are short-lived."
+                  },
+                  "showBoundingBox": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include bounding box overlays for text blocks."
                   },
                   "boundingBoxesParagraphs": {
                     "type": "boolean",
@@ -500,12 +520,27 @@
                     "format": "uri",
                     "description": "Publicly accessible URL of the file to process (required if no file)."
                   },
-                  "post_processing_on": {
+                  "imageMetadata": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Enable advanced passes (e.g., barcode/signature detection)."
+                    "default": false,
+                    "description": "If true, includes image metadata in the response."
                   },
-                  "start_page": {
+                  "signatureDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes signature detection in the response."
+                  },
+                  "barcodeDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes barcode detection in the response."
+                  },
+                  "denseTables": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes dense tables in the response."
+                  },
+                  "startPage": {
                     "type": "integer",
                     "default": 1,
                     "minimum": 1,
