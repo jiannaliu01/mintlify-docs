@@ -6,11 +6,15 @@ description: "Detect and extract signatures from documents, including signer met
 ## Overview
 
 Cardinal can automatically detect **signatures** within documents.  
+
 For each detected signature, you'll receive:  
 
 - **`signature_url`** – a cropped image of the detected signature.  
 - **`is_signature`** – whether the region is confirmed to be a signature (`"yes"` or `"no"`).  
 - **`signed_by`** – signer name.
+
+![Example of signature metadata returned by the API](./images/signature_example.png)
+*Example: Detected signatures and accompanying metadata*
 
 ---
 

@@ -1,0 +1,135 @@
+---
+title: "Split"
+description: "Classify pages and break apart multi-page files using natural-language queries."
+---
+
+### TL;DR
+
+Send an array of descriptions for what you want (e.g., “invoices”, “contracts”, "account number xyz"). Cardinal returns which pages match each description.
+
+---
+
+### Endpoint
+
+**POST** `https://api.trycardinal.ai/split`  
+**Content-Type:** `multipart/form-data`  
+**Auth:** `Authorization: Bearer <API_KEY>`
+
+> You may provide **either** `file` **or** `fileUrl`.
+
+---
+
+### Required parameters
+
+- **`queries`** *(string)* — JSON-encoded array of query objects (see format below)  
+- **`file`** *(file upload)* **OR** **`fileUrl`** *(string)*
+
+### Query object format
+
+Each query is:
+- **`name`** *(string)* — label you’ll see in the response (e.g., `"invoices"`)
+- **`description`** *(string)* — natural-language hint used to find relevant pages
+
+**Example `queries` value**
+```json
+[
+  {"name":"invoices","description":"Pages with invoice numbers, totals due, remittance sections"},
+  {"name":"contracts","description":"Legal agreements with parties, terms, signatures"},
+  {"name":"financial_statements","description":"Balance sheets, income statements, cash flow tables"}
+]
+```
+
+---
+
+### Example requests
+
+```python
+import json, requests
+
+queries = [
+    {"name": "cover_pages", "description": "Title pages or covers"},
+    {"name": "data_tables", "description": "Pages with structured tables"},
+    {"name": "appendices", "description": "Supplemental materials or references"}
+]
+
+resp = requests.post(
+    "https://api.trycardinal.ai/split",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    files={"file": open("quarterly-report.pdf", "rb")},
+    data={"queries": json.dumps(queries)}
+)
+print(resp.json())
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "pages": [
+    {
+      "content": "Page 1 content...",
+      "page_number": 1
+    },
+    {
+      "content": "Page 2 content...",
+      "page_number": 2
+    }
+  ],
+  "partitions": [
+    {
+      "name": "cover_pages",
+      "description": "Title pages, cover sheets, or document headers",
+      "pages": [1]
+    },
+    {
+      "name": "data_tables", 
+      "description": "Pages with structured data, tables, or numerical information",
+      "pages": [3, 4, 7, 8]
+    },
+    {
+      "name": "appendices",
+      "description": "Supporting documents, references, or supplementary materials", 
+      "pages": [9, 10, 11]
+    }
+  ]
+}
+```
+
+### Response Format
+
+The response includes:
+
+- **`success`** - Boolean indicating if partitioning completed successfully
+- **`pages`** - Array of page objects with content and metadata
+- **`partitions`** - Array of partition results, each containing:
+  - **`name`** - The partition name from your query
+  - **`description`** - The partition description from your query  
+  - **`pages`** - Array of page numbers that match this partition (sorted)
+
+### Supported File Types
+
+This endpoint supports:
+
+- **PDF** files (.pdf)
+- **Images** (.jpg, .jpeg, .png)
+
+
+#### Writing Effective Queries
+
+**Good query descriptions:**
+- Be specific about content type: "Financial tables with revenue data"
+- Include context clues: "Pages with signatures or sign-off sections"
+- Mention visual indicators: "Charts, graphs, or data visualizations"
+
+**Less effective queries:**
+- Too vague: "Important pages"
+- Overly restrictive: "Page 5 specifically about Q3 sales in the northeast region"
+
+### Under the Hood
+
+We run the document through our full Markdown pipeline first, converting it into a precise text representation. Only then do we split, ensuring the results are consistent and accurate.
+
+### API Reference
+
+<Card title="Split API" href="api-reference/endpoint/split" icon="code" />

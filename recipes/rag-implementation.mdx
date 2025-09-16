@@ -1,5 +1,5 @@
 ---
-title: "Knowledge Base"
+title: "Build a RAG Pipeline"
 description: "Tutorial on how to use Cardinal and Weaviate to create your own searchable menu knowledge base"
 ---
 
@@ -190,8 +190,8 @@ def s3_to_https(s3_url: str) -> Optional[str]:
 def process_with_cardinal(file_url: str,
                           show_bounding_boxes: bool = True,
                           paragraphs: bool = True) -> Dict[str, Any]:
-    """Call Cardinal /process with bounding boxes enabled."""
-    url = f"{CARDINAL_URL.rstrip('/')}/process"
+    """Call Cardinal /markdown with bounding boxes enabled."""
+    url = f"{CARDINAL_URL.rstrip('/')}/markdown"
     form = {
         "fileUrl": file_url,
         "showBoundingBox": "true" if show_bounding_boxes else "false",

@@ -90,7 +90,7 @@ First, define what data you want to extract. Here's a JSON schema for common cli
 
 ## Step 2: Call Cardinal's API
 
-Send your PDF and schema to Cardinal's `/process` endpoint:
+Send your PDF and schema to Cardinal's `/markdown` endpoint:
 
 ```javascript
 async function extractClinicalData(pdfUrl) {
@@ -137,7 +137,7 @@ async function extractClinicalData(pdfUrl) {
     "required": ["patient_info", "clinical_findings"]
   };
 
-  const response = await fetch('https://api.cardinal.com/process', {
+  const response = await fetch('https://api.cardinal.com/markdown', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',

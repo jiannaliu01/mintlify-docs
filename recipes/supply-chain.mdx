@@ -26,7 +26,7 @@ import json
 def extract_document_markdown(file_path):
     """Extract clean markdown from any supply chain document using Cardinal API"""
     
-    url = "https://api.cardinal.com/process"
+    url = "https://api.cardinal.com/markdown"
     
     # Prepare the file for upload
     with open(file_path, 'rb') as file:

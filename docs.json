@@ -25,11 +25,10 @@
           {
             "group": "Building Blocks",
             "pages": [
-              "partition",
-              "schema",
-              "parse",
-              "bounding-boxes",
-              "output-response"
+              "split",
+              "extract",
+              "markdown",
+              "rag"
             ]
           },
           {
@@ -101,10 +100,11 @@
           {
             "group": "Endpoint examples",
             "pages": [
-              "api-reference/endpoint/process",
+              "api-reference/endpoint/split",
               "api-reference/endpoint/extract",
-              "api-reference/endpoint/compare",
-              "api-reference/endpoint/partition"
+              "api-reference/endpoint/markdown",
+              "api-reference/endpoint/rag",
+              "api-reference/endpoint/compare"
             ]
           }
         ]

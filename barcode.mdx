@@ -6,6 +6,7 @@ description: "Detect barcodes, extract images, values, and precise bounding boxe
 ## Overview
 
 Cardinal automatically detects and extracts **barcodes** during processing.  
+
 For each detected barcode, you'll receive:  
 
 - **`image_url`** – a cropped image of the detected barcode.  
@@ -16,6 +17,9 @@ For each detected barcode, you'll receive:
 - **`page_number`** – the page where the barcode was found.  
 - **`confidence`** – detection confidence score.  
 - **`barcode_index`** – index of the barcode on the page.  
+
+![Example of barcodes returned by the API](./images/barcode_example.png)
+*Example: Detected barcode and accompanying metadata*
 
 ---
 
@@ -63,13 +67,5 @@ To enable barcode extraction, set `barcodeDetect: true` in your API request.
   ]
 }
 ```
-
----
-
-This enables use cases like:
-
-- Linking barcodes to associated records or metadata.
-- Verifying barcode placement, type, and readability.
-- Automating workflows that rely on structured barcode values.
 
 <Note> Bounding box coordinates are provided in the same unit system as other page geometry. Use `page.width` and `page.height` from the response to normalize values if you need to scale to your viewer. </Note>

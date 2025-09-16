@@ -11,10 +11,10 @@
     }
   ],
   "paths": {
-    "/process": {
+    "/markdown": {
       "post": {
-        "summary": "Process File",
-        "description": "Convert PDF or image pages into clean, structured Markdown. Post-processing (barcodes, signatures, etc.) is off by default and, when enabled, will add latency.",
+        "summary": "Markdown File",
+        "description": "Get clean, readable text output that preserves layout.",
         "operationId": "processFile",
         "security": [
           {
@@ -41,22 +41,22 @@
                   "imageMetadataDetect": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, includes image metadata in the response."
+                    "description": "If true, includes image metadata in each page of the response."
                   },
                   "barcodeDetect": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, includes barcode detection in the response."
+                    "description": "If true, includes barcode detection results in each page of the response."
                   },
-                  "denseTables": {
+                  "densePdfDetect": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, includes dense tables in the response."
+                    "description": "If true, includes dense tables in each page of the response."
                   },
                   "signatureDetect": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, includes signature detection in the response."
+                    "description": "If true, includes signature detection results in each page of the response."
                   },
                   "startPage": {
                     "type": "integer",
@@ -66,22 +66,12 @@
                   "ephemeral": {
                     "type": "boolean",
                     "default": false,
-                    "description": "If true, results are not stored; any generated assets are short-lived."
-                  },
-                  "showBoundingBox": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Include bounding box overlays for text blocks."
-                  },
-                  "boundingBoxesParagraphs": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Controls granularity of returned text bounding boxes. If true, boxes are grouped per paragraph; if false, per word. (Does not affect barcode/signature boxes.)"
+                    "description": "We return cropped images by default as presigned URLs. If true, these images are not stored and the URL field will contain a base64 string."
                   },
                   "markdown": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Controls table handling in output. By default, all content is returned as Markdown except tables which remain HTML to preserve structure. If true, tables are also converted to Markdown via markdownify (may cause formatting issues)."
+                    "description": "Controls table handling in output. By default, tables remain HTML to preserve structure. If true, tables are converted to Markdown via markdownify (may reduce fidelity)."
                   }
                 },
                 "oneOf": [
@@ -127,42 +117,87 @@
                         "properties": {
                           "content": {
                             "type": "string",
-                            "description": "Extracted Markdown content."
+                            "description": "Extracted Markdown content for this page."
                           },
                           "height": {
                             "type": "number"
                           },
                           "width": {
                             "type": "number"
+                          },
+                          "barcodes": {
+                            "type": "array",
+                            "description": "Barcode detections for this page (present if barcodeDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "signatures": {
+                            "type": "array",
+                            "description": "Signature detections for this page (present if signatureDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "processed_tables": {
+                            "type": "array",
+                            "description": "Processed/detected tables for this page (present if densePdfDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "image_metadata": {
+                            "type": "array",
+                            "description": "Image metadata entries for this page (present if imageMetadataDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
                           }
+                        },
+                        "required": [
+                          "content",
+                          "height",
+                          "width"
+                        ]
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "start_page": {
+                          "type": "integer"
+                        },
+                        "end_page": {
+                          "type": "integer"
+                        },
+                        "page_limit": {
+                          "type": "integer"
+                        },
+                        "has_more_pages": {
+                          "type": "boolean"
+                        },
+                        "next_start_page": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "total_pages": {
+                          "type": "integer"
+                        },
+                        "current_batch": {
+                          "type": "string"
+                        },
+                        "remaining_pages": {
+                          "type": "integer"
                         }
                       }
-                    },
-                    "barcodes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    },
-                    "signatures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    },
-                    "processed_tables": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
-                    },
-                    "image_metadata": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
                     }
-                  }
+                  },
+                  "required": [
+                    "success",
+                    "pages"
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -171,11 +206,404 @@
                   "failed_pages": 0,
                   "pages": [
                     {
-                      "content": "ACME CORPORATION\\nInvoice #INV-2024-001\\n...",
+                      "content": "ACME CORPORATION\nInvoice #INV-2024-001\n...",
                       "height": 792.0,
-                      "width": 612.0
+                      "width": 612.0,
+                      "barcodes": [
+                        {
+                          "type": "QR",
+                          "value": "INV-2024-001",
+                          "bounding_box": {
+                            "x": 510,
+                            "y": 80,
+                            "w": 72,
+                            "h": 72
+                          }
+                        }
+                      ],
+                      "signatures": [
+                        {
+                          "label": "Authorized Signature",
+                          "confidence": 0.98,
+                          "bounding_box": {
+                            "x": 180,
+                            "y": 650,
+                            "w": 240,
+                            "h": 80
+                          }
+                        }
+                      ],
+                      "processed_tables": [
+                        {
+                          "id": "tbl_1",
+                          "format": "html",
+                          "html": "<table>...</table>"
+                        }
+                      ],
+                      "image_metadata": [
+                        {
+                          "kind": "photo",
+                          "dpi": 300,
+                          "mode": "gray",
+                          "bounding_box": {
+                            "x": 40,
+                            "y": 120,
+                            "w": 300,
+                            "h": 180
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "content": "Payment Terms\nNet 30...",
+                      "height": 792.0,
+                      "width": 612.0,
+                      "barcodes": [],
+                      "signatures": [],
+                      "processed_tables": [],
+                      "image_metadata": []
                     }
+                  ],
+                  "pagination": {
+                    "start_page": 1,
+                    "end_page": 2,
+                    "page_limit": 100,
+                    "has_more_pages": false,
+                    "next_start_page": null,
+                    "total_pages": 2,
+                    "current_batch": "1-2",
+                    "remaining_pages": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid input or missing parameters)"
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing API key)"
+          }
+        }
+      }
+    },
+    "/rag": {
+      "post": {
+        "summary": "RAG File",
+        "description": "Chunk intelligently for retrieval and embedding workflows.",
+        "operationId": "processFile",
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF or image file to upload (required if no fileUrl)."
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Publicly accessible URL of the file to process (required if no file)."
+                  },
+                  "imageMetadataDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes image metadata in each page of the response."
+                  },
+                  "barcodeDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes barcode detections in each page of the response."
+                  },
+                  "densePdfDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes processed dense tables in each page of the response."
+                  },
+                  "signatureDetect": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, includes signature detections in each page of the response."
+                  },
+                  "startPage": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Page number to start processing from."
+                  },
+                  "ephemeral": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "We return cropped images by default as presigned URLs. If true, these images are not stored and the URL field will contain a base64 string."
+                  },
+                  "markdown": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls table handling in content fields. By default, tables remain HTML to preserve structure. If true, tables are converted to Markdown via markdownify (may reduce fidelity)."
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "fileUrl"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful document processing response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total_pages": {
+                      "type": "integer"
+                    },
+                    "successful_pages": {
+                      "type": "integer"
+                    },
+                    "failed_pages": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "content": {
+                            "type": "string",
+                            "description": "Extracted Markdown/text content for this page (RAG-ready)."
+                          },
+                          "height": {
+                            "type": "number",
+                            "description": "Page height in points."
+                          },
+                          "width": {
+                            "type": "number",
+                            "description": "Page width in points."
+                          },
+                          "bounding_boxes": {
+                            "type": "array",
+                            "description": "Per-span bounding boxes and their extracted content.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "bounding_box": {
+                                  "type": "object",
+                                  "properties": {
+                                    "min_x": {
+                                      "type": "number"
+                                    },
+                                    "min_y": {
+                                      "type": "number"
+                                    },
+                                    "max_x": {
+                                      "type": "number"
+                                    },
+                                    "max_y": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "min_x",
+                                    "min_y",
+                                    "max_x",
+                                    "max_y"
+                                  ],
+                                  "description": "Bounding box for the span. Coordinate system matches page units."
+                                },
+                                "content": {
+                                  "type": "string",
+                                  "description": "Raw text content inside the bounding box."
+                                }
+                              },
+                              "required": [
+                                "bounding_box",
+                                "content"
+                              ]
+                            }
+                          },
+                          "barcodes": {
+                            "type": "array",
+                            "description": "Barcode detections for this page (present if barcodeDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "signatures": {
+                            "type": "array",
+                            "description": "Signature detections for this page (present if signatureDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "processed_tables": {
+                            "type": "array",
+                            "description": "Processed/detected tables for this page (present if densePdfDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "image_metadata": {
+                            "type": "array",
+                            "description": "Image metadata entries for this page (present if imageMetadataDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "required": [
+                          "content",
+                          "height",
+                          "width"
+                        ]
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "start_page": {
+                          "type": "integer"
+                        },
+                        "end_page": {
+                          "type": "integer"
+                        },
+                        "page_limit": {
+                          "type": "integer"
+                        },
+                        "has_more_pages": {
+                          "type": "boolean"
+                        },
+                        "next_start_page": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "total_pages": {
+                          "type": "integer"
+                        },
+                        "current_batch": {
+                          "type": "string"
+                        },
+                        "remaining_pages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "pages"
                   ]
+                },
+                "example": {
+                  "success": true,
+                  "total_pages": 2,
+                  "successful_pages": 2,
+                  "failed_pages": 0,
+                  "pages": [
+                    {
+                      "content": "ACME CORPORATION\nInvoice #INV-2024-001\n...",
+                      "height": 792.0,
+                      "width": 612.0,
+                      "bounding_boxes": [
+                        {
+                          "bounding_box": {
+                            "min_x": 0.612,
+                            "min_y": 0.3879,
+                            "max_x": 3.505,
+                            "max_y": 0.922
+                          },
+                          "content": "LTC6102 LTC6102-1/LTC6102HV"
+                        },
+                        {
+                          "bounding_box": {
+                            "min_x": 0.6104,
+                            "min_y": 1.1276,
+                            "max_x": 7.8187,
+                            "max_y": 1.6839
+                          },
+                          "content": "ELECTRICAL CHARACTERISTICS (LTC6102, LTC6102-1) The . denotes the specifications..."
+                        }
+                      ],
+                      "barcodes": [
+                        {
+                          "type": "QR",
+                          "value": "INV-2024-001",
+                          "bounding_box": {
+                            "x": 510,
+                            "y": 80,
+                            "w": 72,
+                            "h": 72
+                          }
+                        }
+                      ],
+                      "signatures": [
+                        {
+                          "label": "Authorized Signature",
+                          "confidence": 0.98,
+                          "bounding_box": {
+                            "x": 180,
+                            "y": 650,
+                            "w": 240,
+                            "h": 80
+                          }
+                        }
+                      ],
+                      "processed_tables": [
+                        {
+                          "id": "tbl_1",
+                          "format": "html",
+                          "html": "<table>...</table>"
+                        }
+                      ],
+                      "image_metadata": [
+                        {
+                          "kind": "photo",
+                          "dpi": 300,
+                          "mode": "gray",
+                          "bounding_box": {
+                            "x": 40,
+                            "y": 120,
+                            "w": 300,
+                            "h": 180
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "pagination": {
+                    "start_page": 1,
+                    "end_page": 1,
+                    "page_limit": 100,
+                    "has_more_pages": false,
+                    "next_start_page": null,
+                    "total_pages": 1,
+                    "current_batch": "1-1",
+                    "remaining_pages": 0
+                  }
                 }
               }
             }
@@ -192,7 +620,7 @@
     "/extract": {
       "post": {
         "summary": "Extract Structured Data by Schema",
-        "description": "Extracts structured data from a PDF or image using a required schema. Accepts a file upload **or** a `fileUrl`.",
+        "description": "Enter your schema, get a custom output.",
         "operationId": "extractSchema",
         "security": [
           {
@@ -262,19 +690,11 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Schema extracted successfully"
-                    },
                     "response": {
                       "oneOf": [
                         {
-                          "type": "object",
-                          "additionalProperties": true
-                        },
-                        {
                           "type": "string",
-                          "description": "May be a string depending on configuration."
+                          "description": "Will return as a stringified object."
                         }
                       ],
                       "description": "Model's structured output matching the provided schema."
@@ -313,10 +733,10 @@
         }
       }
     },
-    "/partition": {
+    "/split": {
       "post": {
-        "summary": "Partition Document into Sections",
-        "description": "Partition a document into logical sections using AI-powered classification based on user-provided queries. Automatically runs the full document processing pipeline first to ensure accurate text extraction before AI classification.",
+        "summary": "Split Document into Sections",
+        "description": "Classify docs, break apart multi-page files, auto-detect types.",
         "operationId": "partitionDocument",
         "security": [
           {
@@ -335,20 +755,14 @@
                     "format": "binary",
                     "description": "PDF or image file to upload (required if no document_url). Allowed: .pdf, .jpg, .jpeg, .png"
                   },
-                  "document_url": {
+                  "fileUrl": {
                     "type": "string",
                     "format": "uri",
                     "description": "Publicly accessible URL of the file to process (required if no file)."
                   },
                   "queries": {
                     "type": "string",
-                    "description": "Required string containing array of PartitionQuery objects. Each query must have 'name' (section label) and 'description' (natural language hint for identifying pages)."
-                  },
-                  "start_page": {
-                    "type": "integer",
-                    "default": 1,
-                    "minimum": 1,
-                    "description": "Page number to start processing from."
+                    "description": "Required string containing array of queries. Each query must have 'name' (section label) and 'description' (natural language hint for identifying pages)."
                   }
                 },
                 "required": [
@@ -362,7 +776,7 @@
                   },
                   {
                     "required": [
-                      "document_url"
+                      "fileUrl"
                     ]
                   }
                 ]
@@ -496,7 +910,7 @@
     "/compare": {
       "post": {
         "summary": "Compare Cardinal results against a baseline",
-        "description": "Runs Cardinal extraction on a PDF or image and returns the standard processing payload **plus** a `dashboard_url` for the evals UI. Optionally include `original_results` to store side-by-side comparison data for the dashboard.",
+        "description": "Compare Cardinal results with another provider.",
         "operationId": "compareFile",
         "security": [
           {
@@ -535,7 +949,7 @@
                     "default": false,
                     "description": "If true, includes barcode detection in the response."
                   },
-                  "denseTables": {
+                  "densePdfDetect": {
                     "type": "boolean",
                     "default": false,
                     "description": "If true, includes dense tables in the response."
@@ -551,22 +965,12 @@
                     "default": false,
                     "description": "If true, results are not persisted; any generated assets are short-lived."
                   },
-                  "showBoundingBox": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Include bounding box overlays for text blocks."
-                  },
                   "markdown": {
                     "type": "boolean",
                     "default": false,
                     "description": "If true, converts tables to Markdown (may be lossy); otherwise tables stay as HTML."
                   },
-                  "boundingBoxesParagraphs": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "If true, text boxes are grouped per paragraph; if false, per word."
-                  },
-                  "original_results": {
+                  "originalResults": {
                     "type": "string",
                     "description": "Optional Markdown string containing baseline results to compare against (e.g., another vendor's OCR output). Stored for the evals dashboard alongside Cardinal results."
                   }
@@ -602,7 +1006,7 @@
                     }
                   },
                   "additionalProperties": true,
-                  "description": "The response is the normal /process payload merged with { dashboard_url }."
+                  "description": "The response is the normal /markdown payload merged with { dashboard_url }."
                 }
               }
             }

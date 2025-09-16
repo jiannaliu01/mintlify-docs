@@ -1,0 +1,102 @@
+---
+title: "Markdown"
+description: "Get clean, readable text output that preserves layout."
+---
+
+### TL;DR
+
+Cardinal can convert PDFs and images into **clean, structured Markdown** using this endpoint. 
+
+- **Tables** are returned as **HTML** for accuracy.  
+- Add **`markdown: true`** to convert tables to Markdown via `markdownify`.  
+  - ⚠️ Markdown tables may lose fidelity (e.g. merged cells, nested tables).  
+
+This Markdown output contains accurate representation of:
+
+- **Annotations**  
+- **Checkmarks**  
+- **Spanning tables** (row/column merges)  
+- **Complex tables** (multi-level, nested)  
+- And more.
+
+---
+
+### Endpoint
+
+**POST** `https://api.trycardinal.ai/markdown`  
+**Content-Type:** `multipart/form-data`  
+**Auth:** `Authorization: Bearer <API_KEY>`
+
+> You may provide **either** `file` **or** `fileUrl`.
+
+---
+
+### Pagination
+
+Large documents are processed in **pages of up to 100** to prevent oversized responses.  
+Each API call returns a batch of up to 100 pages, along with a `pagination` object in the response.  
+
+#### Pagination Fields
+
+- **`start_page`** — First page returned in this batch  
+- **`end_page`** — Last page returned in this batch  
+- **`page_limit`** — Maximum number of pages per batch (default: 100)  
+- **`has_more_pages`** — Whether additional pages remain  
+- **`next_start_page`** — Use this value to request the next batch  
+
+#### Example Usage
+
+You can paginate sequentially or in parallel:
+
+- **Sequential flow**:  
+  1. Call `/markdown` with no pagination params → returns pages 1–100.  
+  2. Check `has_more_pages: true` → use `next_start_page: 101`.  
+  3. Call `/markdown` again with `startPage=101` → fetches the next batch.  
+
+- **Parallel flow**:  
+  You can launch multiple requests at once using `startPage` offsets (e.g., 1, 101, 201, …) to fetch batches concurrently.  
+
+---
+
+### Example requests
+
+```python
+import requests
+
+url = "https://api.trycardinal.ai/markdown"
+headers = {"x-api-key": "<API_KEY>"}
+files = {"file": open("example.pdf", "rb")}
+data = {"markdown": "true", "denseTables": "true"}
+
+response = requests.post(url, headers=headers, files=files, data=data)
+print(response.json())
+``` 
+
+### Example Response 
+
+```json 
+{
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 612,
+      "height": 792,
+      "content": "Acme Health Center\n<h1>INTAKE FORM</h1>\n<p>Name: Alex Johnson<br/>DOB: 01/23/1992<br/>Admit Date: 05/04/2025</p>\n<p>☑ Male ☐ Female ☐ Other</p>\n<p>Address: 123 Main Street, Springfield</p>\n<p>Phone: (555) 123-4567</p>\n<p>Emergency Contact: Jamie Johnson (spouse)</p>\n<p>Marital Status: ☐ Married ☑ Single</p>\n<p>Occupation: Software Engineer</p>\n<p>Primary Language: English</p>\n<p>Interpreter Needed: ☐ Yes ☑ No</p>\n<p>Allergies: None reported</p>\n<p>Insurance Provider: CardinalCare</p>\n<p>Policy #: 123456789</p>\n<table>\n<thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th></tr></thead>\n<tbody>\n<tr><td>Aspirin</td><td>81mg</td><td>Daily</td></tr>\n<tr><td>Metformin</td><td>500mg</td><td>Twice daily</td></tr>\n</tbody>\n</table>"
+    }
+  ],
+   "pagination": {
+        "start_page": 1,
+        "end_page": 1,
+        "page_limit": 100,
+        "has_more_pages": false,
+        "next_start_page": null,
+        "total_pages": 1,
+        "current_batch": "1-1",
+        "remaining_pages": 0
+    }
+}
+``` 
+
+### API Reference
+
+<Card title="Markdown API" href="api-reference/endpoint/markdown" icon="code" />

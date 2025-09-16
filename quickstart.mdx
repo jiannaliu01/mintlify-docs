@@ -1,11 +1,8 @@
 ---
 title: "Quickstart"
-description: "Get up and running with Cardinal in minutes.
+description: "Get started using our `/markdown` endpoint in three steps"
 
-We’ll show you how with Python and cURL!"
 ---
-
-## Get started in three steps
 
 ### Method 1: Python (Recommended)
 
@@ -20,7 +17,7 @@ Process a document:
 ```
 import requests
 
-url = "https://api.trycardinal.ai/process"
+url = "https://api.trycardinal.ai/markdown"
 
 headers = {
     "x-api-key": "YOUR_API_KEY_HERE"
@@ -31,7 +28,7 @@ files = {
 }
 
 data = {
-    "start_page": "1"
+    "startPage": "1"
 }
 
 response = requests.post(url, headers=headers, files=files, data=data)
@@ -39,7 +36,8 @@ response = requests.post(url, headers=headers, files=files, data=data)
 print(response.json())
 ```
 
-✅ You’ve just processed your first document\!\
+You’ve just processed your first document!
+
 The Markdown text will be available in the `"pages" → "content"` fields of the response.
 
 ### Method 2: Pre-signed File URL
@@ -49,7 +47,7 @@ Instead of uploading a file directly, you can pass a publicly accessible or pre-
 ```
 import requests
 
-url = "https://api.trycardinal.ai/process"
+url = "https://api.trycardinal.ai/markdown"
 
 headers = {
     "x-api-key": "YOUR_API_KEY_HERE"
@@ -57,7 +55,7 @@ headers = {
 
 data = {
     "fileUrl": "https://your-bucket.s3.amazonaws.com/sample.pdf?X-Amz-Signature=...",
-    "start_page": "1"
+    "startPage": "1"
 }
 
 response = requests.post(url, headers=headers, data=data)
@@ -72,17 +70,17 @@ This avoids sending the file bytes directly and is ideal for large files or when
 If you prefer the command line:
 
 ```
-curl --location 'https://api.trycardinal.ai/process' \
+curl --location 'https://api.trycardinal.ai/markdown' \
 --header 'x-api-key: YOUR_API_KEY_HERE' \
 --form 'file=@"/path/to/your/document.pdf"' \
---form 'start_page=1'
+--form 'startPage=1'
 ```
 
 ## Request Parameters
 
 - **file** _(required if no _`fileUrl`_)_: PDF or image file to process
 - **fileUrl** _(required if no _`file`_)_: Publicly accessible URL to file
-- **start_page** _(optional, default: 1)_: Start processing from this page
+- **startPage** _(optional, default: 1)_: Start processing from this page
 - **ephemeral** _(optional, default: false)_: If `true`, results are not stored
 
 ## Sample Response
@@ -135,5 +133,4 @@ curl --location 'https://api.trycardinal.ai/process' \
 
 ## Next Steps
 
-- Parse structured elements like **barcodes**, **signatures**, and **images**
-- Build end-to-end pipelines that transform PDFs into Markdown knowledge bases
+- Try our other endpoints! Build end-to-end pipelines using all of our endpoints. 

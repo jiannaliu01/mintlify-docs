@@ -1,28 +1,37 @@
 ---
-title: "Schema Extract"
-description: "Extract structured data from documents using Cardinal with flexible schema formats."
+title: "Extract"
+description: "Enter your schema, get a custom output."
 ---
 
-### Overview
+### TL;DR
 
-Cardinal's schema extraction lets you define the structure you want and get structured data back.
+Provide Cardinal with the schema you want to extract. We’ll return that schema populated with the matching values found in your document.
 
-- Fields missing in the document return null
-- Fields not in your schema are ignored
-- Arrays are supported (see long-doc caveats below)
+---
 
-**Endpoint:** `POST /extract` (supports PDF and images via upload or fileUrl)  
+### Endpoint
+
+**POST** `https://api.trycardinal.ai/extract`  
+**Content-Type:** `multipart/form-data`  
+**Auth:** `Authorization: Bearer <API_KEY>`
+
+> You may provide **either** `file` **or** `fileUrl`.
+
 **Mode:** Set `fast` to `true` (fast path) or `false` (standard path)
+Default mode is `false`.
+
+Use `customContext` (optional, string) to steer extraction with short, domain-specific hints.
+
+---
 
 ### Methods of Schema Extraction
 
 We offer two modes on the same endpoint:
 
-### Fast Schema — `/extract` with `fast: true`
+### 1) Fast Schema — `/extract` with `fast: true`
 
 Use Fast when you need a quick, low-latency, lower-cost pass.
 
-- Best for short docs or targeted checks
 - Prioritizes speed over deep parsing
 - **Input:** PDF or image (`.pdf`, `.jpg`, `.jpeg`, `.png`)
 - Provide your schema as a string
@@ -86,7 +95,7 @@ data = response.json()
 }
 ```
 
-### 2 Standard Schema — `/extract` with `fast: false`
+### 2) Standard Schema — `/extract` with `fast: false`
 
 - Runs the full parsing pipeline first, then aligns to your schema
 - Best for complex layouts (dense tables, annotations, multi-page forms)

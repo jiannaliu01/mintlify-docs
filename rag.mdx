@@ -1,23 +1,24 @@
 ---
-title: "Bounding Box"
-description: "Visualize extracted content with bounding boxes from Cardinal."
+title: "RAG"
+description: "Chunk intelligently for retrieval and embedding workflows."
 ---
 
-### Overview
+### TL;DR
 
-Cardinal can return **bounding boxes** for text, citations, and other extracted elements.  
+Get precise chunks for your retrieval and embedded workflows. 
 
-These appear as `bounding_boxes` objects inside each page entry of the `pages` array in the response.
+![Example of bounding boxes returned by the API](./images/rag_example.png)
+*Example: Document with detected bounding boxes highlighting different content regions*
 
 ---
 
-### How to Enable
+### Endpoint
 
-- Set **`showBoundingBox: true`** in your request.  
-- Bounding boxes are returned in the response under `pages[n].bounding_boxes`.  
-- Default grouping is **by paragraph**.  
-- To switch to **word-level boxes**, set **`boundingBoxesParagraphs: false`**.
-- ⚠️ Enabling bounding box will **add latency** to your requests.  
+**POST** `https://api.trycardinal.ai/rag`  
+**Content-Type:** `multipart/form-data`  
+**Auth:** `Authorization: Bearer <API_KEY>`
+
+> You may provide **either** `file` **or** `fileUrl`.
 
 ---
 
@@ -59,16 +60,6 @@ These appear as `bounding_boxes` objects inside each page entry of the `pages` a
 - `width`, `height` — page size in points (1 inch = 72 points)
 - `bounding_boxes[].bounding_box` — box in inches (min_x, min_y, max_x, max_y)
 - `bounding_boxes[].content` — text captured for that region
-
----
-
-### Use Cases
-
-Bounding boxes let you:
-
-- Highlight citations alongside extracted text  
-- Align extracted content to its original PDF location  
-- Build interactive viewers with selectable regions  
 
 ---
 
@@ -131,9 +122,9 @@ const convertExtractedDataToHighlightAreas = (): HighlightArea[] => {
 };
 ```
 
-**API Reference**
+### API Reference
 
-<Card title="Process File API" href="api-reference/endpoint/process" icon="code" />
+<Card title="RAG API" href="api-reference/endpoint/rag" icon="code" />
 
 ### Coming Soon
 - **Variable chunking** — flexible bounding box grouping (not just paragraphs or words).

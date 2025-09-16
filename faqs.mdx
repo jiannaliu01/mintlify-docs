@@ -3,9 +3,15 @@ title: "FAQs"
 description: "Common questions about Cardinal’s architecture, features, and workflows."
 ---
 
+### What's your secret sauce?
+
+We get this a lot, and even wrote a [blog about it](https://trycardinal.ai/blog/under-the-hood)!
+
+--- 
+
 ### What if I have a really big PDF?
 
-Yes — large PDFs are supported. You can upload via the **`/process`** endpoint using either:  
+Yes — large PDFs are supported. You can upload via the **`/markdown`** endpoint using either:  
 - **File upload** (`multipart/form-data`)  
 - **File URL** (publicly accessible link)  
 
@@ -55,29 +61,4 @@ Cardinal automatically chunks long files and processes them in parallel. This le
 
 We support **autoscaling**. Large bursts of documents are automatically distributed across workers, so you don’t need to manage scaling yourself.
 
----
 
-### Can I just process a few pages?
-
-Yes — use the `start_page` and `end_page` parameters to limit extraction to a subset of the document.
-
----
-
-### How does Classify / Split fit in?
-
-Use **Classify & Split** (currently in beta) to pre-scan documents and tag pages by type (e.g., doctor’s notes, insurance forms, CRO docs). This is cheaper than full extraction and helps you decide which pages to process further.  
-👉 [Learn more](./classify-split)
-
----
-
-### Why Markdown + JSON?
-
-We chose **Markdown + JSON** because:  
-- Markdown preserves document structure (tables, headings, annotations) while remaining lightweight and human-readable.  
-- JSON provides schema-first outputs that map directly into downstream systems.  
-
-### Why not XML?
-
-XML is verbose and less developer-friendly. Markdown + JSON integrates more naturally with modern developer workflows (APIs, RAG, analytics) and avoids unnecessary complexity.
-
----

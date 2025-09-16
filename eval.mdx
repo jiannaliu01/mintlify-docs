@@ -1,51 +1,29 @@
 ---
-title: "Compare (Side-by-Side Evals)"
-description: "Quickly compare Cardinal’s output to your current provider’s results with a single endpoint and an evals dashboard link."
+title: "Compare"
+description: "Compare Cardinal’s output to your current provider’s results."
 ---
 
 ### Why use `/compare`?
 
-Run your eval set through a single endpoint and get a link to a side-by-side comparison UI. You’ll see Cardinal’s extraction next to your baseline (e.g., your current OCR/LLM system) for every file.
+Our goal is to make it as easy as possible to compare Cardinal results to your current provider's results. 
 
-<Note>
-Goal: make it trivial to validate Cardinal. Send your evals to `/compare`, pass your baseline Markdown in <code>original_results</code>, and open the returned <code>dashboard_url</code> to review side-by-side.
-</Note>
+Through this endpoint, you'll get a link to a side-by-side comparison UI. You’ll see Cardinal’s extraction next to your baseline (e.g., your current OCR/LLM system) for every file.
 
 [![Compare flow diagram](/images/eval.png)](https://dashboard.trycardinal.ai/evals)
 
 ---
 
-### TL;DR
+### Endpoint
 
 - **Endpoint:** `POST /compare`
 - **Auth:** `x-api-key: <YOUR_KEY>`
 - **Input:** a file **or** `fileUrl` + optional `original_results` (string)
-- **Output:** same payload as `/process` **plus** `dashboard_url` pointing to the evals UI
-- **UI Link:** `https://dashboard.trycardinal.ai/evals?file_name=<comparison_id>`
+- **Output:** same payload as `/markdown` **plus** `dashboard_url` pointing to the evals UI
+- **UI Link:** `https://dashboard.trycardinal.ai/evals?filename=<comparison_id>`
 
 ---
 
-### Request
-
-### Form fields (multipart)
-
-| Field                      | Type      | Required | Default | Notes |
-|---------------------------|-----------|---------:|:-------:|------|
-| `file`                    | binary    | either `file` or `fileUrl` | — | Allowed: `.pdf`, `.jpg`, `.jpeg`, `.png` |
-| `fileUrl`                 | string(URI) | either `file` or `fileUrl` | — | Public URL to the document |
-| `original_results`        | string    | no       | — | **string** of your baseline Markdown output |
-| `post_processing_on`      | boolean   | no       | `true`  | Enables barcode/signature and other advanced passes |
-| `start_page`              | integer ≥ 1 | no     | `1`     | First page to process |
-| `ephemeral`               | boolean   | no       | `false` | If true, results are not persisted |
-| `showBoundingBox`         | boolean   | no       | `false` | Include text bounding boxes |
-| `markdown`                | boolean   | no       | `false` | Convert tables to Markdown (may be lossy) |
-| `boundingBoxesParagraphs` | boolean   | no       | `true`  | Paragraph-level boxes (false = word-level) |
-
----
-
-### Examples
-
-### Python
+### Example Request
 
 ```bash 
 import requests, json
@@ -53,7 +31,7 @@ import requests, json
 files = {}  # or: {'file': open('invoice.pdf','rb')}
 data = {
   'fileUrl': 'https://example.com/docs/invoice.pdf',
-  'original_results': '### Initial Markdown'
+  'originalResults': '### Initial Markdown'
 }
 headers = {'x-api-key': 'YOUR_KEY'}
 
@@ -63,18 +41,16 @@ print(r.json()['dashboard_url'])
 
 ---
 
-### Response
+### Example Response
 
-You’ll get the full `/process` payload plus a `dashboard_url`:
+You’ll get the full `/markdown` payload plus a `dashboard_url`:
 ```json 
 {
   "success": true,
   "pages": [
     { "content": "ACME CORPORATION\nInvoice #INV-2024-001\n...", "height": 792, "width": 612 }
   ],
-  "processed_tables": [ /* ... */ ],
-  "schema_result": { "invoiceNumber": "250339", "dueDate": "2025-04-18" },
-  "dashboard_url": "https://dashboard.trycardinal.ai/evals?file_name=7db1f2f3-1a2b-4c5d-9e0f-112233445566"
+  "dashboard_url": "https://dashboard.trycardinal.ai/evals?filename=7db1f2f3-1a2b-4c5d-9e0f-112233445566"
 }
 ```
 
