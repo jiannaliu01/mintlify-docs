@@ -187,15 +187,11 @@ def s3_to_https(s3_url: str) -> Optional[str]:
     # Try region-specific format
     return f"https://{bucket}.s3.{AWS_REGION}.amazonaws.com/{encoded_key}"
 
-def process_with_cardinal(file_url: str,
-                          show_bounding_boxes: bool = True,
-                          paragraphs: bool = True) -> Dict[str, Any]:
-    """Call Cardinal /markdown with bounding boxes enabled."""
-    url = f"{CARDINAL_URL.rstrip('/')}/markdown"
+def process_with_cardinal(file_url: str) -> Dict[str, Any]:
+    """Call Cardinal /rag, which will return Markdown content with their bounding boxes."""
+    url = f"{CARDINAL_URL.rstrip('/')}/rag"
     form = {
-        "fileUrl": file_url,
-        "showBoundingBox": "true" if show_bounding_boxes else "false",
-        "boundingBoxesParagraphs": "true" if paragraphs else "false"
+        "fileUrl": file_url
     }
     headers = {"x-api-key": CARDINAL_API_KEY}
 
@@ -321,7 +317,7 @@ for raw_url in tqdm(urls, desc="Processing menu files"):
             continue
 
         # Process with Cardinal - this is where the magic happens!
-        resp = process_with_cardinal(https_url, show_bounding_boxes=True, paragraphs=True)
+        resp = process_with_cardinal(https_url)
 
         # Debug: Check response structure
         if not resp.get("pages"):
