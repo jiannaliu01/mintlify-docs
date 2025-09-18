@@ -1,0 +1,337 @@
+---
+title: "Medical Coding"
+description: "Extract structured diagnosis codes"
+---
+
+## TLDR
+
+This tutorial shows you how to extract structured medical billing codes, procedure information, and diagnostic data from PDFs using Cardinal's `/extract` endpoint. Simply provide a JSON schema of the medical data you want to extract, and Cardinal will return the structured information from your medical documents.
+
+---
+
+## Building Your Medical Codes Extraction System
+
+Let's build a practical medical codes extraction system that can pull CPT codes, ICD-10 codes, procedure descriptions, and billing amounts from medical documents.
+
+### 0) Install dependencies
+
+```python
+# Install dependencies
+!pip install -q requests python-dotenv pandas tqdm
+```
+
+### 1) Load environment variables
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+
+import os, dotenv
+dotenv.load_dotenv('/content/drive/MyDrive/.env')
+
+# Cardinal API
+CARDINAL_URL = os.getenv("CARDINAL_URL", "https://api.trycardinal.ai")
+CARDINAL_API_KEY = os.getenv("CARDINAL_API_KEY")
+
+# Verify API key is loaded
+if not CARDINAL_API_KEY:
+    print("Warning: CARDINAL_API_KEY not found in environment variables")
+else:
+    print("Cardinal API key loaded successfully")
+```
+
+### 2) Define Medical Codes Schema
+
+Here's our JSON schema for extracting medical billing information:
+
+```python
+import json
+
+# Define the schema for medical codes extraction
+MEDICAL_CODES_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "MedicalCodesExtraction",
+    "type": "object",
+    "properties": {
+        "patient_info": {
+            "type": "object",
+            "properties": {
+                "patient_name": {"type": "string"},
+                "patient_id": {"type": "string"},
+                "date_of_birth": {"type": "string"},
+                "date_of_service": {"type": "string"}
+            }
+        },
+        "provider_info": {
+            "type": "object",
+            "properties": {
+                "provider_name": {"type": "string"},
+                "provider_npi": {"type": "string"},
+                "facility_name": {"type": "string"}
+            }
+        },
+        "medical_codes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "cpt_code": {
+                        "type": "string",
+                        "description": "Current Procedural Terminology code"
+                    },
+                    "cpt_description": {
+                        "type": "string",
+                        "description": "Description of the CPT procedure"
+                    },
+                    "icd10_code": {
+                        "type": "string",
+                        "description": "ICD-10 diagnosis code"
+                    },
+                    "icd10_description": {
+                        "type": "string",
+                        "description": "Description of the ICD-10 diagnosis"
+                    },
+                    "modifier_codes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Any modifier codes applied"
+                    },
+                    "units": {
+                        "type": "integer",
+                        "description": "Number of units billed"
+                    },
+                    "charge_amount": {
+                        "type": "number",
+                        "description": "Dollar amount charged for this code"
+                    },
+                    "allowed_amount": {
+                        "type": "number",
+                        "description": "Insurance allowed amount"
+                    }
+                },
+                "required": ["cpt_code"]
+            }
+        },
+        "insurance_info": {
+            "type": "object",
+            "properties": {
+                "primary_insurance": {"type": "string"},
+                "policy_number": {"type": "string"},
+                "group_number": {"type": "string"},
+                "claim_number": {"type": "string"}
+            }
+        },
+        "billing_summary": {
+            "type": "object",
+            "properties": {
+                "total_charges": {"type": "number"},
+                "total_payments": {"type": "number"},
+                "patient_responsibility": {"type": "number"},
+                "balance_due": {"type": "number"}
+            }
+        }
+    },
+    "required": ["medical_codes"]
+}
+
+print("Medical codes schema defined:")
+print(json.dumps(MEDICAL_CODES_SCHEMA, indent=2)[:500] + "...")
+```
+
+### 3) Helper functions for extraction
+
+```python
+import requests
+from typing import Dict, Any, Optional
+
+def extract_medical_codes_from_pdf(file_url: str, 
+                                   use_fast_mode: bool = False,
+                                   custom_context: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Extract medical codes from a PDF using Cardinal's /extract endpoint.
+    
+    Args:
+        file_url: Direct URL to the PDF file
+        use_fast_mode: Use fast extraction (True) or standard mode (False)
+        custom_context: Additional context to guide extraction
+    
+    Returns:
+        Dictionary containing extracted medical codes and billing information
+    """
+    url = f"{CARDINAL_URL.rstrip('/')}/extract"
+    
+    # Default context for medical documents
+    if custom_context is None:
+        custom_context = (
+            "This is a medical billing document containing CPT codes, ICD-10 codes, "
+            "procedure descriptions, and billing amounts. Pay attention to medical "
+            "terminology, code formats, and numerical values for charges and payments."
+        )
+    
+    # Prepare form data
+    form_data = {
+        "fileUrl": file_url,
+        "schema": json.dumps(MEDICAL_CODES_SCHEMA),
+        "fast": str(use_fast_mode).lower(),
+        "customContext": custom_context
+    }
+    
+    headers = {
+        "x-api-key": CARDINAL_API_KEY
+    }
+    
+    print(f"Extracting medical codes from: {file_url}")
+    print(f"Using {'fast' if use_fast_mode else 'standard'} extraction mode")
+    
+    try:
+        response = requests.post(url, data=form_data, headers=headers, timeout=180)
+        response.raise_for_status()
+        
+        result = response.json()
+        extracted_data = result.get("response", {})
+            
+        return {
+            "success": True,
+            "data": extracted_data,
+            "method": result.get("method", "unknown"),
+            "pages_processed": result.get("pages_processed"),
+            "raw_response": result
+        }
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+        return {"success": False, "error": str(e)}
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        return {"success": False, "error": f"Failed to parse response: {e}"}
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return {"success": False, "error": str(e)}
+
+def print_medical_codes_summary(extracted_data: Dict[str, Any]):
+    """Print a formatted summary of extracted medical codes."""
+    if not extracted_data.get("success"):
+        print(f"Extraction failed: {extracted_data.get('error', 'Unknown error')}")
+        return
+    
+    data = extracted_data["data"]
+    
+    print("\n" + "="*60)
+    print("MEDICAL CODES EXTRACTION SUMMARY")
+    print("="*60)
+    
+    # Patient Information
+    if data.get("patient_info"):
+        patient = data["patient_info"]
+        print(f"\n📋 PATIENT INFORMATION:")
+        print(f"   Name: {patient.get('patient_name', 'Not found')}")
+        print(f"   ID: {patient.get('patient_id', 'Not found')}")
+        print(f"   DOB: {patient.get('date_of_birth', 'Not found')}")
+        print(f"   Service Date: {patient.get('date_of_service', 'Not found')}")
+    
+    # Provider Information  
+    if data.get("provider_info"):
+        provider = data["provider_info"]
+        print(f"\n🏥 PROVIDER INFORMATION:")
+        print(f"   Provider: {provider.get('provider_name', 'Not found')}")
+        print(f"   NPI: {provider.get('provider_npi', 'Not found')}")
+        print(f"   Facility: {provider.get('facility_name', 'Not found')}")
+    
+    # Medical Codes
+    codes = data.get("medical_codes", [])
+    print(f"\n💊 MEDICAL CODES ({len(codes)} found):")
+    
+    for i, code in enumerate(codes, 1):
+        print(f"\n   Code #{i}:")
+        print(f"      CPT: {code.get('cpt_code', 'Not found')}")
+        if code.get('cpt_description'):
+            print(f"      CPT Description: {code['cpt_description'][:80]}...")
+        print(f"      ICD-10: {code.get('icd10_code', 'Not found')}")
+        if code.get('icd10_description'):
+            print(f"      ICD-10 Description: {code['icd10_description'][:80]}...")
+        if code.get('modifier_codes'):
+            print(f"      Modifiers: {', '.join(code['modifier_codes'])}")
+        print(f"      Units: {code.get('units', 'Not found')}")
+        print(f"      Charge: ${code.get('charge_amount', 0):,.2f}")
+        if code.get('allowed_amount'):
+            print(f"      Allowed: ${code['allowed_amount']:,.2f}")
+    
+    # Insurance Information
+    if data.get("insurance_info"):
+        insurance = data["insurance_info"]
+        print(f"\n🏛️ INSURANCE INFORMATION:")
+        print(f"   Primary: {insurance.get('primary_insurance', 'Not found')}")
+        print(f"   Policy #: {insurance.get('policy_number', 'Not found')}")
+        print(f"   Group #: {insurance.get('group_number', 'Not found')}")
+        print(f"   Claim #: {insurance.get('claim_number', 'Not found')}")
+    
+    # Billing Summary
+    if data.get("billing_summary"):
+        billing = data["billing_summary"]
+        print(f"\n💰 BILLING SUMMARY:")
+        print(f"   Total Charges: ${billing.get('total_charges', 0):,.2f}")
+        print(f"   Total Payments: ${billing.get('total_payments', 0):,.2f}")
+        print(f"   Patient Responsibility: ${billing.get('patient_responsibility', 0):,.2f}")
+        print(f"   Balance Due: ${billing.get('balance_due', 0):,.2f}")
+    
+    print(f"\n📊 EXTRACTION DETAILS:")
+    print(f"   Method: {extracted_data.get('method', 'Unknown')}")
+    if extracted_data.get('pages_processed'):
+        print(f"   Pages Processed: {extracted_data['pages_processed']}")
+    print("="*60)
+```
+
+### 4) Sample Medical Document URLs
+
+```python
+# Sample medical billing documents
+SAMPLE_MEDICAL_URLS = [
+    "s3://public-cardinal-bucket/forms/SAMPLE_CODING_DOC.pdf"
+]
+
+# For demo purposes, let's use a publicly available medical billing sample
+# You can replace this with your actual medical document URL
+sample_url = SAMPLE_MEDICAL_URLS[0]
+print(f"Using sample medical document: {sample_url}")
+```
+
+### 5) Extract Medical Codes
+
+Now let's extract medical codes from our sample document:
+
+```python
+from tqdm import tqdm
+import time
+
+def process_medical_document(file_url: str):
+    """Process a single medical document and extract codes."""
+    
+    print(f"\n{'='*50}")
+    print(f"PROCESSING: {file_url}")
+    print(f"{'='*50}")
+    
+    standard_result = extract_medical_codes_from_pdf(
+        file_url=file_url,
+        use_fast_mode=False
+    )
+    
+    if standard_result.get("success"):
+        print("✅ Standard extraction successful!")
+        print_medical_codes_summary(standard_result)
+
+# Process the sample document
+process_medical_document(sample_url)
+```
+
+---
+
+## What You Just Built
+
+Congratulations! You've created a medical codes extraction system from PDFs using only the Cardinal API. Your system can now:
+
+- **Extract structured medical data** using a simple JSON schema
+- **Process both fast and standard modes** depending on your accuracy needs
+- **Handle batch processing** of multiple medical documents
+- **Export results to CSV** for further analysis and integration
+
+Your sample medical billing document is just the beginning - imagine having every EOB, superbill, and claim form automatically parsed in seconds!

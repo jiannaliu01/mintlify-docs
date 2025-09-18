@@ -60,9 +60,10 @@
           {
             "group": "Recipes",
             "pages": [
-              "recipes/rag-implementation",
-              "recipes/supply-chain",
-              "recipes/json-extraction"
+              "recipes/medical-coding",
+              "recipes/prior-auth",
+              "recipes/rcm",
+              "recipes/ehr-integration"
             ]
           },
           {
