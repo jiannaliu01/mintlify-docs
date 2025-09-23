@@ -5,11 +5,13 @@ description: "Get clean, readable text output that preserves layout."
 
 ### TL;DR
 
-Cardinal can convert PDFs and images into **clean, structured Markdown** using this endpoint. 
+Cardinal converts PDFs and images into **clean, structured Markdown** using this endpoint.
 
-- **Tables** are returned as **HTML** for accuracy.  
-- Add **`markdown: true`** to convert tables to Markdown via `markdownify`.  
-  - ⚠️ Markdown tables may lose fidelity (e.g. merged cells, nested tables).  
+**Table handling options:**
+- **Default**: When tables are present, **everything** (including text) is returned as **HTML**
+- **Option 1**: Set `markdownPreserveTables: true` → Tables stay HTML, everything else converts to Markdown
+- **Option 2**: Set `markdown: true` → Everything converts to Markdown
+  - ⚠️ **Warning**: Markdown tables may lose fidelity (merged cells, nested tables, etc.)
 
 This Markdown output contains accurate representation of:
 

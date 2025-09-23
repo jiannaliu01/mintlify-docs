@@ -72,6 +72,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Controls table handling in output. By default, tables remain HTML to preserve structure. If true, tables are converted to Markdown via markdownify (may reduce fidelity)."
+                  },
+                  "markdownPreserveTables": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls table handling in output. When true, tables remain as HTML while other content converts to Markdown. When false, follows default behavior (everything as HTML if tables present) or converts everything to Markdown if 'markdown' is true."
                   }
                 },
                 "oneOf": [
