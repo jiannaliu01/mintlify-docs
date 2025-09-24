@@ -77,6 +77,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Controls table handling in output. When true, tables remain as HTML while other content converts to Markdown. When false, follows default behavior (everything as HTML if tables present) or converts everything to Markdown if 'markdown' is true."
+                  },
+                  "digitizeFigures": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, figures are digitized and returned as HTML."
                   }
                 },
                 "oneOf": [
@@ -154,6 +159,13 @@
                           "image_metadata": {
                             "type": "array",
                             "description": "Image metadata entries for this page (present if imageMetadataDetect=true).",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "digitized_figures": {
+                            "type": "array",
+                            "description": "Digitized figures for this page (present if digitizeFigures=true).",
                             "items": {
                               "type": "object"
                             }

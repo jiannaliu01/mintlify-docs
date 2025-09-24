@@ -37,6 +37,7 @@
               "image-metadata",
               "barcode",
               "signature",
+              "digitized-figures",
               "dense-tables",
               "redlines",
               "coming-soon"
