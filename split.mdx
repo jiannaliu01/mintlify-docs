@@ -29,6 +29,7 @@ Send an array of descriptions for what you want (e.g., “invoices”, “contra
 Each query is:
 - **`name`** *(string)* — label you’ll see in the response (e.g., `"invoices"`)
 - **`description`** *(string)* — natural-language hint used to find relevant pages
+- **`exclude_matchers`** *(array, optional)* — rules to prevent classification when pages match other categories
 
 **Example `queries` value**
 ```json
@@ -39,6 +40,26 @@ Each query is:
 ]
 ```
 
+### Exclusion Rules
+
+Use `exclude_matchers` to handle pages that could match multiple categories:
+
+- **`["*"]`** — Don't classify if the page matches ANY other category (catch-all behavior)
+- **`["*", "!categoryName"]`** — Don't classify if page matches any other category EXCEPT the specified one
+- **`["category1", "category2"]`** — Don't classify if the page also matches these specific categories
+
+**Example use case:**
+```json
+[
+  {"name":"medical_records","description":"Patient charts, lab results, clinical notes"},
+  {"name":"billing","description":"Insurance claims, payment records, billing codes"},
+  {
+    "name":"other",
+    "description":"Any other healthcare documents",
+    "exclude_matchers":["*"]
+  }
+]
+```
 ---
 
 ### Example requests
