@@ -27,9 +27,10 @@ Send an array of descriptions for what you want (e.g., “invoices”, “contra
 ### Query object format
 
 Each query is:
-- **`name`** *(string)* — label you’ll see in the response (e.g., `"invoices"`)
+- **`name`** *(string)* — label you'll see in the response (e.g., `"invoices"`)
 - **`description`** *(string)* — natural-language hint used to find relevant pages
 - **`exclude_matchers`** *(array, optional)* — rules to prevent classification when pages match other categories
+- **`priority`** *(number, optional)* — higher numbers take precedence when exclusion rules create conflicts (default: 0)
 
 **Example `queries` value**
 ```json
@@ -57,6 +58,37 @@ Use `exclude_matchers` to handle pages that could match multiple categories:
     "name":"other",
     "description":"Any other healthcare documents",
     "exclude_matchers":["*"]
+  }
+]
+```
+
+### Priority Rules
+
+Use `priority` to control which category wins when pages match multiple conflicting categories:
+
+- **`priority`** *(number, optional)* — Higher numbers take precedence when exclusion rules create conflicts (default: 0)
+- When a page matches multiple categories with conflicting `exclude_matchers`, the category with the highest priority is kept
+- If priorities are equal, both categories are kept (no conflict resolution)
+
+**Example with priority:**
+```json
+[
+  {
+    "name": "invoices",
+    "description": "Invoice pages with line items and totals",
+    "priority": 10
+  },
+  {
+    "name": "receipts", 
+    "description": "Payment receipts and transaction records",
+    "priority": 5,
+    "exclude_matchers": ["invoices"]
+  },
+  {
+    "name": "other_financial",
+    "description": "Any other financial documents",
+    "priority": 1,
+    "exclude_matchers": ["*"]
   }
 ]
 ```
@@ -150,6 +182,63 @@ This endpoint supports:
 ### Under the Hood
 
 We run the document through our full Markdown pipeline first, converting it into a precise text representation. Only then do we split, ensuring the results are consistent and accurate.
+
+---
+
+## Extraction Endpoint
+
+**POST** `https://api.trycardinal.ai/split/extract`  
+**Content-Type:** `multipart/form-data`  
+**Auth:** `X-API-KEY: <API_KEY>`
+
+After classifying pages with `/split`, use `/split/extract` to download specific pages as a separate PDF.
+
+### Required parameters
+
+- **`pages`** *(string)* — JSON-encoded array of page numbers (e.g., `"[1, 3, 5, 7]"`)
+- **`file`** *(file upload)* **OR** **`fileUrl`** *(string)*
+
+### Example requests
+```python
+import json, requests
+
+# First, get page classifications from /split
+split_resp = requests.post(
+    "https://api.trycardinal.ai/split",
+    headers={"X-API-KEY": "YOUR_API_KEY"},
+    files={"file": open("document.pdf", "rb")},
+    data={"queries": json.dumps([
+        {"name": "invoices", "description": "Invoice pages"}
+    ])}
+)
+
+partitions = split_resp.json()["partitions"]
+invoice_pages = next(p["pages"] for p in partitions if p["name"] == "invoices")
+
+# Extract those pages as a new PDF
+extract_resp = requests.post(
+    "https://api.trycardinal.ai/split/extract",
+    headers={"X-API-KEY": "YOUR_API_KEY"},
+    files={"file": open("document.pdf", "rb")},
+    data={
+        "pages": json.dumps(invoice_pages),  # e.g., [1, 3, 5]
+        "filename": "invoices.pdf"
+    }
+)
+
+# Save the extracted PDF
+with open("invoices.pdf", "wb") as f:
+    f.write(extract_resp.content)
+```
+
+### Response Format
+
+The `/split/extract` endpoint returns a PDF file directly.
+
+- **Content-Type:** `application/pdf`
+- **Content-Disposition:** `attachment; filename="<your-filename>.pdf"`
+
+To save the extracted PDF, simply write the response body to a `.pdf` file.
 
 ### API Reference
 
