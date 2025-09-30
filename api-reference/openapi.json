@@ -726,6 +726,10 @@
                     "pages_processed": {
                       "type": "integer",
                       "description": "Present in slow mode."
+                    },
+                    "confidence_score": {
+                      "type": "number",
+                      "description": "Confidence score (0-100) indicating extraction reliability, present in slow mode."
                     }
                   },
                   "required": [

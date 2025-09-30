@@ -176,7 +176,8 @@ data = response.json()
   "success": true,
   "response": "{\"invoice_number\":\"INV-00392\",\"due_date\":\"2025-09-01\",\"total_amount\":1042.50,\"line_items\":[{\"description\":\"Consulting\",\"amount\":900.00},{\"description\":\"Tax\",\"amount\":142.50}]}",
   "method": "slow",
-  "pages_processed": 6
+  "pages_processed": 6,
+  "confidence_score": 0.95
 }
 ```
 
@@ -246,6 +247,7 @@ curl -X POST https://api.trycardinal.ai/extract \
 - `response` – the extracted data (either an object or a JSON string)
 - `method` – "fast" or "slow"
 - `pages_processed` – present in slow mode
+- `confidence_score` – confidence score (0-100) indicating extraction reliability, present in slow mode
 - `success` – present in slow mode
 
 If `response` is a string, parse it:
