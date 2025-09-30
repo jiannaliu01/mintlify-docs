@@ -26,6 +26,9 @@ Send an array of descriptions for what you want (e.g., “invoices”, “contra
 - **`queries`** *(string)* — JSON-encoded array of query objects (see format below)  
 - **`file`** *(file upload)* **OR** **`fileUrl`** *(string)*
 
+### Optional parameters
+- **`customContext`** *(string)* — Additional context to improve classification accuracy and help the model understand domain-specific terminology. Use this to provide background information about the document type, industry, or specific terminology that will help with more accurate page classification.
+
 ### Query object format
 
 Each query is:
