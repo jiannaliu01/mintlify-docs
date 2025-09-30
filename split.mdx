@@ -7,6 +7,8 @@ description: "Classify pages and break apart multi-page files using natural-lang
 
 Send an array of descriptions for what you want (e.g., “invoices”, “contracts”, "account number xyz"). Cardinal returns which pages match each description.
 
+**Note:** Each page is matched to at most one partition type for accuracy purposes.
+
 ---
 
 ### Endpoint
@@ -28,9 +30,7 @@ Send an array of descriptions for what you want (e.g., “invoices”, “contra
 
 Each query is:
 - **`name`** *(string)* — label you'll see in the response (e.g., `"invoices"`)
-- **`description`** *(string)* — natural-language hint used to find relevant pages
-- **`exclude_matchers`** *(array, optional)* — rules to prevent classification when pages match other categories
-- **`priority`** *(number, optional)* — higher numbers take precedence when exclusion rules create conflicts (default: 0)
+- **`description`** *(string, optional)* — natural-language hint used to find relevant pages
 
 **Example `queries` value**
 ```json
@@ -38,58 +38,6 @@ Each query is:
   {"name":"invoices","description":"Pages with invoice numbers, totals due, remittance sections"},
   {"name":"contracts","description":"Legal agreements with parties, terms, signatures"},
   {"name":"financial_statements","description":"Balance sheets, income statements, cash flow tables"}
-]
-```
-
-### Exclusion Rules
-
-Use `exclude_matchers` to handle pages that could match multiple categories:
-
-- **`["*"]`** — Don't classify if the page matches ANY other category (catch-all behavior)
-- **`["*", "!categoryName"]`** — Don't classify if page matches any other category EXCEPT the specified one
-- **`["category1", "category2"]`** — Don't classify if the page also matches these specific categories
-
-**Example use case:**
-```json
-[
-  {"name":"medical_records","description":"Patient charts, lab results, clinical notes"},
-  {"name":"billing","description":"Insurance claims, payment records, billing codes"},
-  {
-    "name":"other",
-    "description":"Any other healthcare documents",
-    "exclude_matchers":["*"]
-  }
-]
-```
-
-### Priority Rules
-
-Use `priority` to control which category wins when pages match multiple conflicting categories:
-
-- **`priority`** *(number, optional)* — Higher numbers take precedence when exclusion rules create conflicts (default: 0)
-- When a page matches multiple categories with conflicting `exclude_matchers`, the category with the highest priority is kept
-- If priorities are equal, both categories are kept (no conflict resolution)
-
-**Example with priority:**
-```json
-[
-  {
-    "name": "invoices",
-    "description": "Invoice pages with line items and totals",
-    "priority": 10
-  },
-  {
-    "name": "receipts", 
-    "description": "Payment receipts and transaction records",
-    "priority": 5,
-    "exclude_matchers": ["invoices"]
-  },
-  {
-    "name": "other_financial",
-    "description": "Any other financial documents",
-    "priority": 1,
-    "exclude_matchers": ["*"]
-  }
 ]
 ```
 ---
