@@ -87,6 +87,12 @@
             "pages": [
               "uptime"
             ]
+          },
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog"
+            ]
           }
         ]
       },
