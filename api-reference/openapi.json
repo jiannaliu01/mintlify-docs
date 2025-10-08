@@ -63,6 +63,14 @@
                     "default": 1,
                     "description": "Page number to start processing from."
                   },
+                  "endPage": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": null,
+                    "description": "Page number to end processing at."
+                  },
                   "ephemeral": {
                     "type": "boolean",
                     "default": false,
@@ -355,6 +363,14 @@
                     "type": "integer",
                     "default": 1,
                     "description": "Page number to start processing from."
+                  },
+                  "endPage": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "default": null,
+                    "description": "Page number to end processing at."
                   },
                   "ephemeral": {
                     "type": "boolean",
