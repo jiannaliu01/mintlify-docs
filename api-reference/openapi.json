@@ -751,6 +751,100 @@
                     "confidence_score": {
                       "type": "number",
                       "description": "Confidence score (0-100) indicating extraction reliability, present in slow mode."
+                    },
+                    "image_metadata": {
+                      "type": "array",
+                      "description": "Image metadata entries for this extraction (present if imageMetadataDetect=true).",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "figure_id": {
+                            "type": "integer",
+                            "description": "Numeric ID that matches the Markdown placeholder."
+                          },
+                          "caption": {
+                            "type": "string",
+                            "description": "Short description or label for the figure."
+                          },
+                          "cropped_image_url": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Direct link (or base64 if ephemeral) to the cropped figure image."
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "description": "Additional context such as format, description, or brand info.",
+                            "additionalProperties": true
+                          },
+                          "bounding_box": {
+                            "type": "object",
+                            "description": "Bounding box coordinates in both original and pixel space.",
+                            "properties": {
+                              "original": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "number"
+                                  },
+                                  "y": {
+                                    "type": "number"
+                                  },
+                                  "w": {
+                                    "type": "number"
+                                  },
+                                  "h": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              "pixel": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "number"
+                                  },
+                                  "y": {
+                                    "type": "number"
+                                  },
+                                  "w": {
+                                    "type": "number"
+                                  },
+                                  "h": {
+                                    "type": "number"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "subfigure_count": {
+                            "type": "integer",
+                            "description": "Number of subfigures (if any)."
+                          },
+                          "processing_times": {
+                            "type": "object",
+                            "description": "Timing breakdown for figure extraction steps.",
+                            "properties": {
+                              "detection_ms": {
+                                "type": "number"
+                              },
+                              "crop_ms": {
+                                "type": "number"
+                              },
+                              "ocr_ms": {
+                                "type": "number"
+                              },
+                              "total_ms": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "figure_id",
+                          "cropped_image_url",
+                          "bounding_box"
+                        ]
+                      }
                     }
                   },
                   "required": [
